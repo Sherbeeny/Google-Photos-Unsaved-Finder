@@ -1,0 +1,54 @@
+<div id="gpsf-overlay" class="gpsf-overlay"></div>
+<div id="gpsf-modal" class="gpsf-modal">
+  <div class="gpsf-modal-header">
+    <h2>Google Photos Saved Finder</h2>
+    <button id="gpsf-close-button" class="gpsf-close-button">&times;</button>
+  </div>
+  <div class="gpsf-modal-content">
+    <div class="gpsf-form-group">
+      <label>1. Select Source Album(s):</label>
+      <div id="gpsf-source-albums" class="gpsf-album-list">
+        <!-- Album checkboxes will be dynamically inserted here -->
+        <p>Loading albums...</p>
+      </div>
+    </div>
+
+    <div class="gpsf-form-group">
+      <label>2. Select Filter Type:</label>
+      <div class="gpsf-radio-group">
+        <label><input type="radio" name="filter-type" value="any" checked> Any</label>
+        <label><input type="radio" name="filter-type" value="saved"> Saved</label>
+        <label><input type="radio" name="filter-type" value="not-saved"> Not Saved</label>
+      </div>
+    </div>
+
+    <div class="gpsf-form-group">
+      <label>3. Select Destination Album:</label>
+      <div id="gpsf-destination-album-container">
+        <select id="gpsf-destination-album-select">
+          <option value="">Choose existing album...</option>
+          <!-- Existing albums will be populated here -->
+        </select>
+        <p>OR</p>
+        <input type="text" id="gpsf-destination-album-new" placeholder="Create new album...">
+      </div>
+    </div>
+
+    <div class="gpsf-form-group">
+        <label for="gpsf-batch-size">4. Batch Size:</label>
+        <input type="number" id="gpsf-batch-size" value="20" min="1" max="100">
+    </div>
+
+  </div>
+  <div class="gpsf-modal-footer">
+    <div id="gpsf-feedback" class="gpsf-feedback">
+        <p id="gpsf-status">Status: Idle</p>
+        <p id="gpsf-stats">Scanned: 0/0 | Matches: 0</p>
+        <div id="gpsf-log" class="gpsf-log"></div>
+    </div>
+    <div class="gpsf-action-buttons">
+        <button id="gpsf-start-button" class="gpsf-button-primary">Start</button>
+        <button id="gpsf-cancel-button" class="gpsf-button-secondary" disabled>Cancel</button>
+    </div>
+  </div>
+</div>
