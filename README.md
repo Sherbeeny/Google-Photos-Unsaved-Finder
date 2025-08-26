@@ -1,2 +1,2 @@
 # Google-Photos-Saved-Finder
-A userscript based on GPTK to identify items saved or not saved items from an album to add them to another album.
+A userscript based on the [Google Photos Toolkit (GPTK)](https://github.com/xob0t/Google-Photos-Toolkit) to identify album items saved or not saved to your account and adds them to another album.
