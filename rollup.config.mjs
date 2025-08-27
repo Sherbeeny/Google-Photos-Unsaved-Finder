@@ -3,7 +3,6 @@ import { nodeResolve } from '@rollup/plugin-node-resolve'
 import commonjs from '@rollup/plugin-commonjs'
 import { string } from 'rollup-plugin-string'
 import postcss from 'rollup-plugin-postcss'
-import terser from '@rollup/plugin-terser'
 
 const pkg = JSON.parse(readFileSync('./package.json', 'utf8'))
 
@@ -46,7 +45,6 @@ export default {
       minimize: true
     }),
     nodeResolve(),
-    commonjs(),
-    terser()
+    commonjs()
   ]
 }
