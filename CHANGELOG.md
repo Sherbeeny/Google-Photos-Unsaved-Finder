@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Timestamp Versioning.
 
+## [2025.08.28-0138] - 2025-08-27
+
+### Fixed
+- A race condition where the script could fail if its companion script (GPTK) had not finished initializing. The script now waits for GPTK to be ready before executing.
+- A Content Security Policy (CSP) error that caused a blank popup window. The script now uses a CSP-safe method to build the UI, resolving the issue.
+
 ## [2025.08.28-0101] - 2025-08-27
 
 ### Fixed
