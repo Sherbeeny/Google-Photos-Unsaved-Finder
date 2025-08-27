@@ -121,6 +121,10 @@ These directives are **crucial** for developing this advanced project:
 -   **Clear Comments**: Comment complex logic, assumptions, important decision points, and any workarounds. Use TSDoc for all public APIs.
 -   **Performance**: While robustness and correctness are primary, be mindful of performance. Avoid unnecessary overhead in message processing. Benchmark critical paths if there are concerns about the performance impact.
 
+## Authorship:
+
+-   The project author, **Sherbeeny**, must be credited in all relevant files and documentation.
+
 
 ## Error Handling:
 

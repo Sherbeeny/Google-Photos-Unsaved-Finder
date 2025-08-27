@@ -1,4 +1,4 @@
-/* Overlay */
+/* Overlay for the dialog */
 .gpsf-overlay {
   position: fixed;
   top: 0;
@@ -7,147 +7,58 @@
   height: 100%;
   background-color: rgba(0, 0, 0, 0.6);
   z-index: 999;
-  display: none; /* Hidden by default */
+  display: none; /* Controlled by JS */
 }
 
-/* Modal */
-.gpsf-modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: #202124; /* Google's dark theme background */
-  color: #e8eaed; /* Google's dark theme text color */
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+/* Customizations for the MDC Dialog */
+#gpsf-modal {
   z-index: 1000;
-  width: 500px;
-  max-width: 90%;
-  display: none; /* Hidden by default */
-  font-family: 'Google Sans', Roboto, Arial, sans-serif;
-}
-
-.gpsf-modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 24px;
-  border-bottom: 1px solid #5f6368; /* Google's dark theme border color */
-}
-
-.gpsf-modal-header h2 {
-  margin: 0;
-  font-size: 1.25rem;
-}
-
-.gpsf-close-button {
-  background: none;
-  border: none;
-  color: #e8eaed;
-  font-size: 1.5rem;
-  cursor: pointer;
-}
-
-.gpsf-modal-content {
-  padding: 24px;
-  max-height: 60vh;
-  overflow-y: auto;
+  width: 600px;
+  max-width: 90vw;
+  display: none; /* Controlled by JS */
 }
 
 .gpsf-form-group {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
-.gpsf-form-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-}
-
-.gpsf-album-list {
-  border: 1px solid #5f6368;
-  border-radius: 4px;
-  padding: 8px;
-  max-height: 150px;
+/* Style for the source album checklist */
+#gpsf-source-albums {
+  max-height: 180px;
   overflow-y: auto;
-}
-
-.gpsf-radio-group label,
-.gpsf-album-list label {
-  display: block;
-  margin-bottom: 5px;
-}
-
-input[type="text"],
-input[type="number"],
-select {
-  width: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
   padding: 8px;
-  border: 1px solid #5f6368;
   border-radius: 4px;
-  background-color: #3c4043;
-  color: #e8eaed;
 }
 
-.gpsf-modal-footer {
-  padding: 16px 24px;
-  border-top: 1px solid #5f6368;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
+#gpsf-source-albums .mdc-form-field {
+  display: block; /* Each checkbox on its own line */
 }
 
-.gpsf-feedback {
-    font-size: 0.8rem;
-    color: #bdc1c6; /* Lighter grey for status text */
-}
-
-.gpsf-feedback p {
-    margin: 0 0 5px 0;
-}
-
+/* Custom styles for the log area */
 .gpsf-log {
-    border: 1px solid #5f6368;
-    border-radius: 4px;
-    padding: 8px;
-    height: 80px;
-    overflow-y: scroll;
-    font-family: 'Roboto Mono', monospace;
-    font-size: 0.75rem;
-    background-color: #202124;
-}
-
-.gpsf-action-buttons {
-    display: flex;
-    gap: 10px;
-}
-
-button {
-  padding: 8px 16px;
-  border: none;
+  border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
+  padding: 8px;
+  height: 100px;
+  overflow-y: scroll;
+  background-color: #f5f5f5;
+  margin-top: 16px;
 }
 
-.gpsf-button-primary {
-  background-color: #8ab4f8; /* Google's blue */
-  color: #202124;
+.gpsf-log .log-error {
+  color: #b00020;
 }
 
-.gpsf-button-primary:disabled {
-    background-color: #5f6368;
-    cursor: not-allowed;
+.gpsf-log .log-success {
+  color: #006400;
 }
 
-.gpsf-button-secondary {
-  background-color: transparent;
-  border: 1px solid #5f6368;
-  color: #8ab4f8;
+/* Ensure text fields take full width */
+.mdc-text-field {
+  width: 100%;
 }
 
-.gpsf-button-secondary:disabled {
-    border-color: #3c4043;
-    color: #5f6368;
-    cursor: not-allowed;
+.mdc-select {
+    width: 100%;
 }
