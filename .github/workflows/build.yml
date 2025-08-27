@@ -30,4 +30,4 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          gh release create "v$VERSION" ./dist/gpsf.user.js --title "Release v$VERSION" --notes "Automatic release of version v$VERSION."
+          gh release create "v$VERSION" ./dist/gpsf.user.js --title "Release v$VERSION" --notes "Automatic release of version v$VERSION." --prerelease

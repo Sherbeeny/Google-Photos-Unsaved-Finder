@@ -5,14 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Timestamp Versioning.
 
+## [2025.08.28-0027] - 2025-08-27
+
+### Changed
+- Removed minification (`terser`) from the build process to ensure the final userscript is human-readable, per user feedback.
+- The CI/CD workflow now marks new builds as "pre-releases" on GitHub.
+
+### Fixed
+- The userscript build was invalid for Tampermonkey because the metadata header was being removed. This was corrected by removing the minification step.
+
 ## [2025.08.27-2346] - 2025-08-27
 
 ### Added
 - JSDoc comments to all major functions in `src/main.js` for better code documentation.
 - A visual MDC Linear Progress bar to the UI to provide better feedback during the scanning process.
-
-### Changed
-- The Rollup build process now includes `rollup-plugin-terser` to minify the production userscript.
 
 ### Fixed
 - A critical typo in the MDC script URL that was preventing the script from loading and executing in the E2E test environment.
