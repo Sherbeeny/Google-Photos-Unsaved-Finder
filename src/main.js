@@ -1,376 +1,306 @@
-import UI_HTML from './ui.html'
-import UI_CSS from './styles.css'
+import uiHtml from './ui.html'
+import styles from './styles.css'
 
-(function () {
-  'use strict'
+// State variables
+let uiInjected = false
+let mdcInitialized = false
+let albumsLoaded = false
+let albums = []
+let isProcessing = false
+let isCancelled = false
 
-  const SCRIPT_NAME = 'Google Photos Saved Finder'
-  let uiInjected = false
-  let albumsLoaded = false
-  let albums = []
+// MDC instances
+let dialog, destSelect, startButton, cancelButton
 
-  /**
-   * Populates the album lists in the UI.
-   * @param {Array} albumList - The list of albums from the GPTK API.
-   */
-  function populateAlbumLists (albumList) {
-    const sourceList = document.getElementById('gpsf-source-albums')
-    const destSelect = document.getElementById('gpsf-destination-album-select')
+const SCRIPT_NAME = 'Google Photos Saved Finder'
 
-    // Clear existing content
-    sourceList.innerHTML = ''
-    // Keep the first "Choose..." option
-    while (destSelect.options.length > 1) {
-      destSelect.remove(1)
-    }
+/**
+ * Injects all CSS into the page.
+ */
+function injectStyles () {
+  const localStyleSheet = document.createElement('style')
+  localStyleSheet.innerText = styles
+  document.head.appendChild(localStyleSheet)
+  const mdcCSS = GM_getResourceText('mdcCSS')
+  GM_addStyle(mdcCSS)
+}
 
-    if (!albumList || albumList.length === 0) {
-      sourceList.innerHTML = '<p>No albums found.</p>'
-      return
-    }
+/**
+ * Populates the album lists in the UI with MDC components.
+ * @param {Array} albumList - The list of albums from the GPTK API.
+ */
+export function populateAlbumLists (albumList) {
+  const sourceList = document.getElementById('gpsf-source-albums')
+  const destList = document.getElementById('gpsf-destination-album-select')
 
-    albumList.forEach(album => {
-      // Populate source albums checklist
-      const checkboxId = `gpsf-album-${album.mediaKey}`
-      const label = document.createElement('label')
-      const checkbox = document.createElement('input')
-      checkbox.type = 'checkbox'
-      checkbox.id = checkboxId
-      checkbox.value = album.mediaKey
-      checkbox.dataset.title = album.title
-      label.appendChild(checkbox)
-      label.appendChild(document.createTextNode(` ${album.title} (${album.itemCount})`))
-      sourceList.appendChild(label)
+  sourceList.innerHTML = ''
+  destList.innerHTML = '<li class="mdc-list-item mdc-list-item--selected" aria-selected="true" data-value=""><span></span></li>'
 
-      // Populate destination album dropdown
-      const option = document.createElement('option')
-      option.value = album.mediaKey
-      option.textContent = `${album.title} (${album.itemCount})`
-      destSelect.appendChild(option)
-    })
+  if (!albumList || albumList.length === 0) {
+    sourceList.innerHTML = '<p class="mdc-typography--body2">No albums found.</p>'
+    return
   }
 
-  /**
-    * Fetches all albums using the GPTK API and populates the UI.
-    */
-  async function loadAlbums () {
-    if (albumsLoaded) return
-    console.log(`${SCRIPT_NAME}: Loading albums...`)
-    const sourceList = document.getElementById('gpsf-source-albums')
-    sourceList.innerHTML = '<p>Loading albums...</p>'
+  albumList.forEach(album => {
+    const checkboxId = `gpsf-album-${album.mediaKey}`
+    const formField = document.createElement('div')
+    formField.className = 'mdc-form-field'
+    const checkboxDiv = document.createElement('div')
+    checkboxDiv.className = 'mdc-checkbox'
+    const input = document.createElement('input')
+    input.type = 'checkbox'
+    input.className = 'mdc-checkbox__native-control'
+    input.id = checkboxId
+    input.value = album.mediaKey
+    input.dataset.title = album.title
+    const bg = document.createElement('div')
+    bg.className = 'mdc-checkbox__background'
+    bg.innerHTML = '<svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24"><path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/></svg><div class="mdc-checkbox__mixedmark"></div>'
+    checkboxDiv.appendChild(input)
+    checkboxDiv.appendChild(bg)
+    const label = document.createElement('label')
+    label.htmlFor = checkboxId
+    label.textContent = ` ${album.title} (${album.itemCount})`
+    formField.appendChild(checkboxDiv)
+    formField.appendChild(label)
+    console.log('TEST: Appending formField:', formField.outerHTML)
+    sourceList.appendChild(formField)
+    // eslint-disable-next-line no-new
+    new window.mdc.checkbox.MDCCheckbox(checkboxDiv)
 
+    const listItem = document.createElement('li')
+    listItem.className = 'mdc-list-item'
+    listItem.dataset.value = album.mediaKey
+    listItem.innerHTML = `<span class="mdc-list-item__text">${album.title} (${album.itemCount})</span>`
+    destList.appendChild(listItem)
+  })
+}
+
+/**
+  * Fetches all albums using the GPTK API and populates the UI.
+  */
+export async function loadAlbums () {
+  if (albumsLoaded) return
+  log('Loading albums...')
+  try {
+    console.log('TEST: Before getAllAlbums await')
+    albums = await unsafeWindow.gptkApiUtils.getAllAlbums()
+    console.log('TEST: After getAllAlbums await', albums)
+    albums.sort((a, b) => a.title.localeCompare(b.title))
+    populateAlbumLists(albums)
+    albumsLoaded = true
+    log(`${albums.length} albums loaded successfully.`, 'success')
+  } catch (error) {
+    console.error(`${SCRIPT_NAME}: Failed to load albums.`, error)
+    log('Error loading albums. Is GPTK running?', 'error')
+  }
+}
+
+/**
+ * Initializes all Material Design Components.
+ */
+function initializeMDC () {
+  if (mdcInitialized) return
+  const dialogEl = document.getElementById('gpsf-modal')
+  if (!dialogEl) return
+  dialog = new window.mdc.dialog.MDCDialog(dialogEl)
+  destSelect = new window.mdc.select.MDCSelect(document.getElementById('gpsf-destination-album-select-container'))
+  startButton = new window.mdc.ripple.MDCRipple(document.getElementById('gpsf-start-button'))
+  cancelButton = new window.mdc.ripple.MDCRipple(document.getElementById('gpsf-cancel-button'))
+  document.querySelectorAll('.mdc-text-field').forEach(el => new window.mdc.textField.MDCTextField(el))
+  document.querySelectorAll('.mdc-radio').forEach(el => new window.mdc.radio.MDCRadio(el))
+  mdcInitialized = true
+}
+
+export function injectUI () {
+  if (uiInjected) return
+  injectStyles()
+  const container = document.createElement('div')
+  container.id = 'gpsf-container'
+  container.innerHTML = uiHtml
+  document.body.appendChild(container)
+  uiInjected = true
+  initializeMDC()
+  addEventListeners()
+}
+
+export function showUI () {
+  if (!uiInjected) injectUI()
+  if (dialog && !dialog.isOpen) dialog.open()
+  document.getElementById('gpsf-overlay').style.display = 'block'
+  if (!albumsLoaded) loadAlbums()
+}
+
+function hideUI () {
+  if (dialog && dialog.isOpen) dialog.close()
+  document.getElementById('gpsf-overlay').style.display = 'none'
+}
+
+function log (message, type = 'info') {
+  const logArea = document.getElementById('gpsf-log')
+  if (!logArea) return
+  const entry = document.createElement('div')
+  entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`
+  entry.className = `log-${type}`
+  logArea.appendChild(entry)
+  logArea.scrollTop = logArea.scrollHeight
+}
+
+function updateFeedback (status, scanned = 0, total = 0, matches = 0) {
+  document.getElementById('gpsf-status').textContent = `Status: ${status}`
+  document.getElementById('gpsf-stats').textContent = `Scanned: ${scanned}/${total} | Matches: ${matches}`
+}
+
+function resetUIState () {
+  startButton.disabled = false
+  cancelButton.disabled = true
+  const logArea = document.getElementById('gpsf-log')
+  logArea.innerHTML = ''
+  updateFeedback('Idle')
+}
+
+async function getSourceMediaItems () {
+  const sourceCheckboxes = document.querySelectorAll('#gpsf-source-albums input[type="checkbox"]:checked')
+  if (sourceCheckboxes.length === 0) {
+    log('No source albums selected.', 'error')
+    return null
+  }
+  const allItems = []
+  const itemKeys = new Set()
+  updateFeedback('Fetching media items...')
+  for (const checkbox of sourceCheckboxes) {
+    if (isCancelled) return null
+    const albumId = checkbox.value
+    const albumTitle = checkbox.dataset.title
+    log(`Fetching items from album: "${albumTitle}"...`)
     try {
-      albums = await unsafeWindow.gptkApiUtils.getAllAlbums()
-      albums.sort((a, b) => a.title.localeCompare(b.title))
-      populateAlbumLists(albums)
-      albumsLoaded = true
-      console.log(`${SCRIPT_NAME}: ${albums.length} albums loaded.`)
-    } catch (error) {
-      console.error(`${SCRIPT_NAME}: Failed to load albums.`, error)
-      sourceList.innerHTML = '<p class="gpsf-error">Error loading albums. Is GPTK running?</p>'
-    }
-  }
-
-  /**
-   * Injects the UI HTML and CSS into the page.
-   * This function should only be called once.
-   */
-  function injectUI () {
-    if (uiInjected) return
-
-    // Inject CSS
-    const style = document.createElement('style')
-    style.textContent = UI_CSS
-    document.head.appendChild(style)
-
-    // Inject HTML
-    const container = document.createElement('div')
-    container.innerHTML = UI_HTML
-    document.body.appendChild(container)
-
-    uiInjected = true
-    console.log(`${SCRIPT_NAME}: UI Injected.`)
-
-    // Add event listeners for the UI
-    addEventListeners()
-  }
-
-  /**
-   * Shows the main UI modal.
-   */
-  function showUI () {
-    if (!uiInjected) {
-      injectUI()
-    }
-    document.getElementById('gpsf-overlay').style.display = 'block'
-    document.getElementById('gpsf-modal').style.display = 'block'
-    console.log(`${SCRIPT_NAME}: Showing UI.`)
-
-    // Load albums if they haven't been loaded yet
-    if (!albumsLoaded) {
-      loadAlbums()
-    }
-  }
-
-  /**
-   * Hides the main UI modal.
-   */
-  function hideUI () {
-    document.getElementById('gpsf-overlay').style.display = 'none'
-    document.getElementById('gpsf-modal').style.display = 'none'
-    console.log(`${SCRIPT_NAME}: Hiding UI.`)
-  }
-
-  /**
-   * Adds event listeners to the UI elements.
-   */
-  let isProcessing = false
-  let isCancelled = false
-
-  /**
-   * Logs a message to the UI log area.
-   * @param {string} message - The message to log.
-   * @param {string} type - The type of message ('error', 'success', 'info').
-   */
-  function log (message, type = 'info') {
-    const logArea = document.getElementById('gpsf-log')
-    const entry = document.createElement('div')
-    entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`
-    entry.className = `log-${type}`
-    logArea.appendChild(entry)
-    logArea.scrollTop = logArea.scrollHeight // Auto-scroll
-  }
-
-  /**
-   * Updates the status and stats display.
-   * @param {string} status - The main status message.
-   * @param {number} scanned - Number of items scanned.
-   * @param {number} total - Total items to scan.
-   * @param {number} matches - Number of items matched.
-   */
-  function updateFeedback (status, scanned = 0, total = 0, matches = 0) {
-    document.getElementById('gpsf-status').textContent = `Status: ${status}`
-    document.getElementById('gpsf-stats').textContent = `Scanned: ${scanned}/${total} | Matches: ${matches}`
-  }
-
-  /**
-   * Resets the UI to its initial state before processing.
-   */
-  function resetUIState () {
-    document.getElementById('gpsf-start-button').disabled = false
-    document.getElementById('gpsf-cancel-button').disabled = true
-    const logArea = document.getElementById('gpsf-log')
-    logArea.innerHTML = ''
-    updateFeedback('Idle')
-  }
-
-  /**
-   * Gathers all media items from the selected source albums.
-   * @returns {Promise<Array>} A promise that resolves to an array of media items.
-   */
-  async function getSourceMediaItems () {
-    const sourceCheckboxes = document.querySelectorAll('#gpsf-source-albums input[type="checkbox"]:checked')
-    if (sourceCheckboxes.length === 0) {
-      log('Error: No source albums selected.', 'error')
-      return null
-    }
-
-    let allItems = []
-    const itemKeys = new Set()
-
-    for (const checkbox of sourceCheckboxes) {
-      const albumId = checkbox.value
-      const albumTitle = checkbox.dataset.title
-      log(`Fetching items from album: "${albumTitle}"...`)
-      try {
-        const items = await unsafeWindow.gptkApiUtils.getAllMediaInAlbum(albumId)
-        items.forEach(item => {
-          if (!itemKeys.has(item.mediaKey)) {
-            itemKeys.add(item.mediaKey)
-            allItems.push(item)
-          }
-        })
-        log(`Found ${items.length} items in "${albumTitle}". Total unique items so far: ${allItems.length}`)
-      } catch (error) {
-        log(`Error fetching items from album "${albumTitle}": ${error.message}`, 'error')
-      }
-      if (isCancelled) return null
-    }
-
-    return allItems
-  }
-
-  /**
-   * Processes the media items in batches to find matches.
-   * @param {Array} items - The array of media items to process.
-   * @param {string} filterType - The filter to apply ('saved', 'not-saved', 'any').
-   * @param {number} batchSize - The number of items to process in each batch.
-   * @returns {Promise<Array|null>} A promise that resolves to an array of matched items, or null if cancelled.
-   */
-  async function processBatches (items, filterType, batchSize) {
-    const matchedItems = []
-    let scannedCount = 0
-    const totalCount = items.length
-
-    for (let i = 0; i < totalCount; i += batchSize) {
-      if (isCancelled) return null
-      const batch = items.slice(i, i + batchSize)
-      updateFeedback(`Processing batch ${i / batchSize + 1} of ${Math.ceil(totalCount / batchSize)}...`, scannedCount, totalCount, matchedItems.length)
-
-      const promises = batch.map(item => unsafeWindow.gptkApi.getItemInfo(item.mediaKey))
-      const results = await Promise.all(promises)
-
-      scannedCount += batch.length
-
-      results.forEach(itemInfo => {
-        if (!itemInfo) return
-        const isSaved = itemInfo.savedToYourPhotos
-        if (filterType === 'any' ||
-           (filterType === 'saved' && isSaved) ||
-           (filterType === 'not-saved' && !isSaved)) {
-          matchedItems.push(itemInfo)
+      const items = await unsafeWindow.gptkApiUtils.getAllMediaInAlbum(albumId)
+      items.forEach(item => {
+        if (!itemKeys.has(item.mediaKey)) {
+          itemKeys.add(item.mediaKey)
+          allItems.push(item)
         }
       })
-
-      updateFeedback(`Processing batch ${i / batchSize + 1} of ${Math.ceil(totalCount / batchSize)}...`, scannedCount, totalCount, matchedItems.length)
-      log(`Batch processed. Scanned: ${scannedCount}/${totalCount}. Matches found: ${matchedItems.length}.`)
-    }
-
-    return matchedItems
-  }
-
-  /**
-   * Adds the matched items to the destination album.
-   * @param {Array} matchedItems - The array of items to add.
-   */
-  async function addToAlbum (matchedItems) {
-    const destSelect = document.getElementById('gpsf-destination-album-select')
-    const newAlbumName = document.getElementById('gpsf-destination-album-new').value.trim()
-    let destinationAlbumId = destSelect.value
-
-    if (!destinationAlbumId && !newAlbumName) {
-      log('Error: No destination album selected or new album name provided.', 'error')
-      return
-    }
-
-    try {
-      if (newAlbumName) {
-        log(`Creating new album: "${newAlbumName}"...`)
-        updateFeedback('Creating new album...')
-        destinationAlbumId = await unsafeWindow.gptkApi.createAlbum(newAlbumName)
-        log(`Album "${newAlbumName}" created successfully with ID: ${destinationAlbumId}`, 'success')
-      }
-
-      if (!destinationAlbumId) {
-        log('Error: Could not determine destination album ID.', 'error')
-        return
-      }
-
-      const mediaKeys = matchedItems.map(item => item.mediaKey)
-      log(`Adding ${mediaKeys.length} items to destination album...`)
-      updateFeedback(`Adding ${mediaKeys.length} items to album...`)
-      await unsafeWindow.gptkApiUtils.addToExistingAlbum(mediaKeys, destinationAlbumId)
-      log(`${mediaKeys.length} items successfully added to the album.`, 'success')
-      updateFeedback('Process Complete!', matchedItems.length, matchedItems.length, matchedItems.length)
+      log(`Found ${items.length} items in "${albumTitle}". Total unique items so far: ${allItems.length}`)
     } catch (error) {
-      log(`Error adding items to album: ${error.message}`, 'error')
-      updateFeedback('Error!')
+      log(`Error fetching items from album "${albumTitle}": ${error.message}`, 'error')
     }
   }
+  return allItems
+}
 
-  /**
-   * Starts the main process of finding and adding photos.
-   */
-  async function startProcess () {
-    if (isProcessing) return
-    isProcessing = true
-    isCancelled = false
-    resetUIState()
-    document.getElementById('gpsf-start-button').disabled = true
-    document.getElementById('gpsf-cancel-button').disabled = false
+async function processBatches (items, filterType, batchSize) {
+  const matchedItems = []
+  let scannedCount = 0
+  const totalCount = items.length
+  for (let i = 0; i < totalCount; i += batchSize) {
+    if (isCancelled) return null
+    const batch = items.slice(i, i + batchSize)
+    updateFeedback(`Processing batch ${Math.floor(i / batchSize) + 1} of ${Math.ceil(totalCount / batchSize)}...`, scannedCount, totalCount, matchedItems.length)
+    const promises = batch.map(item => unsafeWindow.gptkApi.getItemInfo(item.mediaKey))
+    const results = await Promise.all(promises)
+    scannedCount += batch.length
+    results.forEach(itemInfo => {
+      if (!itemInfo) return
+      const isSaved = itemInfo.savedToYourPhotos
+      if (filterType === 'any' || (filterType === 'saved' && isSaved) || (filterType === 'not-saved' && !isSaved)) {
+        matchedItems.push(itemInfo)
+      }
+    })
+    log(`Batch processed. Scanned: ${scannedCount}/${totalCount}. Matches found: ${matchedItems.length}.`)
+  }
+  return matchedItems
+}
 
-    log('Starting process...')
-    updateFeedback('Starting...')
-
-    const mediaItems = await getSourceMediaItems()
-    if (!mediaItems || mediaItems.length === 0) {
-      log('No media items to process. Stopping.', 'info')
-      isProcessing = false
-      resetUIState()
-      return
+async function addToAlbum (matchedItems) {
+  const newAlbumName = document.getElementById('gpsf-destination-album-new').value.trim()
+  let destinationAlbumId = destSelect.value
+  if (!destinationAlbumId && !newAlbumName) {
+    log('No destination album selected or new album name provided.', 'error')
+    return
+  }
+  try {
+    if (newAlbumName) {
+      log(`Creating new album: "${newAlbumName}"...`)
+      updateFeedback('Creating new album...')
+      destinationAlbumId = await unsafeWindow.gptkApi.createAlbum(newAlbumName)
+      log(`Album "${newAlbumName}" created successfully.`, 'success')
     }
-    if (isCancelled) {
-      isProcessing = false
-      resetUIState()
-      return
-    }
+    if (!destinationAlbumId) return
+    log(`Adding ${matchedItems.length} items to destination album...`)
+    updateFeedback(`Adding ${matchedItems.length} items...`)
+    await unsafeWindow.gptkApiUtils.addToExistingAlbum(matchedItems.map(item => item.mediaKey), destinationAlbumId)
+    log(`${matchedItems.length} items successfully added.`, 'success')
+    updateFeedback('Process Complete!', matchedItems.length, matchedItems.length, matchedItems.length)
+  } catch (error) {
+    log(`Error adding items to album: ${error.message}`, 'error')
+    updateFeedback('Error!')
+  }
+}
 
-    const filterType = document.querySelector('input[name="filter-type"]:checked').value
-    const batchSize = parseInt(document.getElementById('gpsf-batch-size').value, 10)
-
-    const matchedItems = await processBatches(mediaItems, filterType, batchSize)
-
-    if (isCancelled) {
-      log('Process cancelled by user.', 'info')
-    } else if (matchedItems && matchedItems.length > 0) {
-      log(`Processing complete. Found ${matchedItems.length} matches.`, 'success')
-      await addToAlbum(matchedItems)
-    } else {
-      log('Processing complete. No matches found.', 'info')
-      updateFeedback('Complete. No matches found.', mediaItems.length, mediaItems.length, 0)
-    }
-
+export async function startProcess () {
+  if (isProcessing) return
+  isProcessing = true
+  isCancelled = false
+  resetUIState()
+  startButton.disabled = true
+  cancelButton.disabled = false
+  log('Starting process...')
+  const mediaItems = await getSourceMediaItems()
+  if (!mediaItems || mediaItems.length === 0 || isCancelled) {
+    log('No media items to process or process cancelled.', 'info')
     isProcessing = false
     resetUIState()
+    return
   }
-
-  /**
-   * Sets the cancellation flag to stop the process.
-   */
-  function cancelProcess () {
-    if (!isProcessing) return
-    isCancelled = true
-    document.getElementById('gpsf-cancel-button').disabled = true
-    log('Cancellation requested. The process will stop after the current batch.', 'info')
-    updateFeedback('Cancelling...')
+  const filterType = document.querySelector('input[name="filter-type"]:checked').value
+  const batchSize = parseInt(document.getElementById('gpsf-batch-size').value, 10) || 20
+  const matchedItems = await processBatches(mediaItems, filterType, batchSize)
+  if (isCancelled) {
+    log('Process cancelled by user.', 'info')
+  } else if (matchedItems && matchedItems.length > 0) {
+    log(`Processing complete. Found ${matchedItems.length} matches.`, 'success')
+    await addToAlbum(matchedItems)
+  } else {
+    log('Processing complete. No matches found.', 'info')
+    updateFeedback('Complete. No matches found.', mediaItems.length, mediaItems.length, 0)
   }
+  isProcessing = false
+  resetUIState()
+}
 
-  /**
-   * Adds event listeners to the UI elements.
-   */
-  function addEventListeners () {
-    document.getElementById('gpsf-close-button').addEventListener('click', hideUI)
-    document.getElementById('gpsf-overlay').addEventListener('click', hideUI)
-    document.getElementById('gpsf-start-button').addEventListener('click', startProcess)
-    document.getElementById('gpsf-cancel-button').addEventListener('click', cancelProcess)
+function cancelProcess () {
+  if (!isProcessing) return
+  isCancelled = true
+  cancelButton.disabled = true
+  log('Cancellation requested. The process will stop after the current batch.', 'info')
+  updateFeedback('Cancelling...')
+}
+
+function addEventListeners () {
+  dialog.listen('MDCDialog:closed', hideUI)
+  document.getElementById('gpsf-overlay').addEventListener('click', hideUI)
+  document.getElementById('gpsf-start-button').addEventListener('click', startProcess)
+  document.getElementById('gpsf-cancel-button').addEventListener('click', cancelProcess)
+}
+
+function main () {
+  console.log(`${SCRIPT_NAME}: Initializing...`)
+  if (typeof unsafeWindow.gptkApi === 'undefined' || typeof unsafeWindow.gptkApiUtils === 'undefined') {
+    console.error(`${SCRIPT_NAME}: Google Photos Toolkit (GPTK) is not available.`)
+    return
   }
+  if (unsafeWindow.gptkCore) unsafeWindow.gptkCore.isProcessRunning = false
+  GM_registerMenuCommand('Start Google Photos Saved Finder', showUI)
+  console.log(`${SCRIPT_NAME}: Initialized successfully.`)
+}
 
-  /**
-   * Initializes the script.
-   */
-  function initialize () {
-    console.log(`${SCRIPT_NAME}: Initializing...`)
-
-    // Check if the required GPTK API is available
-    if (typeof unsafeWindow.gptkApi === 'undefined') {
-      console.error(`${SCRIPT_NAME}: Google Photos Toolkit (GPTK) is not installed or enabled. This script requires GPTK to function.`)
-      // Maybe show a popup to the user later.
-      return
-    }
-
-    // Manually enable the GPTK core process flag as required
-    if (unsafeWindow.gptkCore) {
-      // This is a bit of a hack, but the prompt requires it.
-      // We set it to false and let our script manage it.
-      unsafeWindow.gptkCore.isProcessRunning = false
-    }
-
-    // Register the menu command to open the script's UI
-    GM_registerMenuCommand('Start Google Photos Saved Finder', showUI)
-
-    console.log(`${SCRIPT_NAME}: Initialized successfully. Ready to start from the Tampermonkey menu.`)
+// Self-executing anonymous function for the final userscript
+(function () {
+  if (typeof GM_info !== 'undefined' && GM_info.scriptHandler === 'Tampermonkey') {
+    const mdcScript = document.createElement('script')
+    mdcScript.src = 'https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js'
+    mdcScript.onload = main
+    document.head.appendChild(mdcScript)
   }
-
-  // Run the script
-  initialize()
 })()

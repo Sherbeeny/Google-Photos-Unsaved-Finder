@@ -16,3 +16,5 @@ Thumbs.db
 
 # Test coverage
 /coverage
+
+.setup_complete
