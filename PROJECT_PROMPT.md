@@ -64,7 +64,7 @@ The UI must be a single, clean modal window adhering to Google's Material Design
 ### 3.5. Quality Assurance
 
 *   The project must be configured with ESLint for code linting.
-*   The project must be configured with Vitest and JSDOM for testing.
+*   The project must be configured with Vitest and Playwright for testing.
 *   At a minimum, unit tests for the core non-UI logic should be created.
-*   An integration test that simulates the execution of both GPTK and the new userscript in a `jsdom` environment must be created to verify that there are no initialization conflicts.
+*   An integration test that simulates the execution of both GPTK and the new userscript in a real browser environment via Playwright must be created to verify that there are no initialization conflicts.
 *   A `validate` script must be added to `package.json` to perform full testing and checks on the final bundled userscript file as a pre-commit check.
