@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Timestamp Versioning.
 
+## [2025.08.28-0101] - 2025-08-27
+
+### Fixed
+- A critical bug where the script's menu command would not appear in Tampermonkey. This was caused by a Content Security Policy (CSP) error on `photos.google.com` blocking a dynamically loaded script. The script's entry point has been refactored to resolve this while maintaining compatibility with the E2E test environment.
+
 ## [2025.08.28-0027] - 2025-08-27
 
 ### Changed
