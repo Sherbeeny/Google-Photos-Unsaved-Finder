@@ -108,22 +108,34 @@ function initializeMDC (doc) {
  */
 export function showUI () {
   const popup = window.open('', 'Google Photos Saved Finder', 'width=600,height=800')
-  popup.document.write(uiHtml)
+
+  if (!popup) {
+    alert('Please allow popups for this site to use the script.')
+    return
+  }
+
+  // Use DOMParser to safely parse the HTML string, avoiding document.write
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(uiHtml, 'text/html')
+
+  // Replace the popup's blank document with the parsed content
+  popup.document.replaceChild(doc.documentElement, popup.document.documentElement)
+
   injectStyles(popup.document)
 
   const mdcScript = popup.document.createElement('script')
   mdcScript.src = 'https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js'
   mdcScript.onload = () => {
     try {
-      if (window.mdc) {
+      if (popup.window.mdc) {
         initializeMDC(popup.document)
         addEventListeners(popup.document)
         loadAlbums(popup.document)
       } else {
-        log('MDC library not loaded.', popup.document, 'error')
+        log('MDC library not loaded in popup.', popup.document, 'error')
       }
     } catch (e) {
-      log(`Error initializing MDC: ${e.message}`, popup.document, 'error')
+      log(`Error initializing MDC in popup: ${e.message}`, popup.document, 'error')
     }
   }
   popup.document.head.appendChild(mdcScript)
@@ -397,12 +409,24 @@ function main () {
   }
 }
 
+/**
+ * Waits for the GPTK API to be available before executing a callback.
+ * @param {function} callback The function to execute when GPTK is ready.
+ */
+function waitForGptk (callback) {
+  if (typeof unsafeWindow.gptkApi !== 'undefined' && typeof unsafeWindow.gptkApiUtils !== 'undefined') {
+    callback()
+  } else {
+    console.log(`${SCRIPT_NAME}: Waiting for Google Photos Toolkit (GPTK) to be available...`)
+    setTimeout(() => waitForGptk(callback), 500)
+  }
+}
+
 // Self-executing anonymous function for the final userscript
 (function () {
   if (typeof GM_info !== 'undefined' && GM_info.scriptHandler === 'Tampermonkey') {
-    // In the live userscript, run main immediately to avoid CSP issues on the host page.
-    // The popup window will handle loading MDC for itself.
-    main()
+    // In the live userscript, wait for the companion script GPTK to be ready.
+    waitForGptk(main)
   } else {
     // In the E2E test environment, the popup seems to have trouble loading external scripts.
     // Therefore, we load MDC on the main test page first, and then call main().
