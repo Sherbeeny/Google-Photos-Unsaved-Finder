@@ -26,7 +26,7 @@ Before installing, you **MUST** have the following:
 1.  Go to `photos.google.com`.
 2.  Click the Tampermonkey extension icon in your browser's toolbar.
 3.  In the menu that appears, click on **"Start Google Photos Saved Finder"**.
-4.  A  window will appear on the page.
+4.  A popup window will appear.
 5.  Use the controls to:
     *   Select your **Source Album(s)** (e.g., the shared album you want to check).
     *   Choose the **Filter Type** ("Not Saved" to find photos to add to your library).

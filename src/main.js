@@ -7,12 +7,13 @@ let isProcessing = false
 let isCancelled = false
 
 // MDC instances
-let destSelect, startButton, cancelButton
+let destSelect, startButton, cancelButton, progressBar
 
 const SCRIPT_NAME = 'Google Photos Saved Finder'
 
 /**
  * Injects all CSS into the page.
+ * @param {Document} doc The document to inject the styles into.
  */
 function injectStyles (doc) {
   const styleEl = doc.createElement('style')
@@ -23,6 +24,7 @@ function injectStyles (doc) {
 /**
  * Populates the album lists in the UI with MDC components.
  * @param {Array} albumList - The list of albums from the GPTK API.
+ * @param {Document} doc The document to populate the lists in.
  */
 export function populateAlbumLists (albumList, doc) {
   const sourceList = doc.getElementById('gpsf-source-albums')
@@ -72,6 +74,7 @@ export function populateAlbumLists (albumList, doc) {
 
 /**
   * Fetches all albums using the GPTK API and populates the UI.
+  * @param {Document} doc The document to populate the lists in.
   */
 export async function loadAlbums (doc) {
   log('Loading albums...', doc)
@@ -88,16 +91,21 @@ export async function loadAlbums (doc) {
 
 /**
  * Initializes all Material Design Components.
+ * @param {Document} doc The document to initialize the components in.
  */
 function initializeMDC (doc) {
   destSelect = new window.mdc.select.MDCSelect(doc.getElementById('gpsf-destination-album-select-container'))
   startButton = new window.mdc.ripple.MDCRipple(doc.getElementById('gpsf-start-button'))
   cancelButton = new window.mdc.ripple.MDCRipple(doc.getElementById('gpsf-cancel-button'))
+  progressBar = new window.mdc.linearProgress.MDCLinearProgress(doc.querySelector('#gpsf-progress-bar-container .mdc-linear-progress'))
   doc.querySelectorAll('.mdc-text-field').forEach(el => new window.mdc.textField.MDCTextField(el))
   doc.querySelectorAll('.mdc-radio').forEach(el => new window.mdc.radio.MDCRadio(el))
   doc.querySelectorAll('.mdc-checkbox').forEach(el => new window.mdc.checkbox.MDCCheckbox(el))
 }
 
+/**
+ * Shows the main UI.
+ */
 export function showUI () {
   const popup = window.open('', 'Google Photos Saved Finder', 'width=600,height=800')
   popup.document.write(uiHtml)
@@ -106,36 +114,84 @@ export function showUI () {
   const mdcScript = popup.document.createElement('script')
   mdcScript.src = 'https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js'
   mdcScript.onload = () => {
-    initializeMDC(popup.document)
-    addEventListeners(popup.document)
-    loadAlbums(popup.document)
+    try {
+      if (window.mdc) {
+        initializeMDC(popup.document)
+        addEventListeners(popup.document)
+        loadAlbums(popup.document)
+      } else {
+        log('MDC library not loaded.', popup.document, 'error')
+      }
+    } catch (e) {
+      log(`Error initializing MDC: ${e.message}`, popup.document, 'error')
+    }
   }
   popup.document.head.appendChild(mdcScript)
 }
 
+/**
+ * Logs a message to the log area in the UI.
+ * @param {string} message The message to log.
+ * @param {Document} doc The document to log to.
+ * @param {string} type The type of log message (e.g., 'info', 'success', 'error').
+ */
 function log (message, doc, type = 'info') {
   const logArea = doc.getElementById('gpsf-log')
   if (!logArea) return
   const entry = doc.createElement('div')
   entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`
   entry.className = `log-${type}`
+  if (type === 'error') {
+    entry.style.color = 'red'
+  }
   logArea.appendChild(entry)
   logArea.scrollTop = logArea.scrollHeight
 }
 
+/**
+ * Updates the feedback area in the UI.
+ * @param {string} status The status message to display.
+ * @param {Document} doc The document to update.
+ * @param {number} scanned The number of items scanned.
+ * @param {number} total The total number of items to scan.
+ * @param {number} matches The number of matches found.
+ */
 function updateFeedback (status, doc, scanned = 0, total = 0, matches = 0) {
   doc.getElementById('gpsf-status').textContent = `Status: ${status}`
   doc.getElementById('gpsf-stats').textContent = `Scanned: ${scanned}/${total} | Matches: ${matches}`
+  const progressBarContainer = doc.getElementById('gpsf-progress-bar-container')
+
+  if (total > 0 && scanned > 0 && scanned <= total) {
+    progressBarContainer.style.display = 'block'
+    progressBar.progress = scanned / total
+  } else {
+    progressBarContainer.style.display = 'none'
+    progressBar.progress = 0
+  }
 }
 
+/**
+ * Resets the UI to its initial state.
+ * @param {Document} doc The document to reset.
+ */
 function resetUIState (doc) {
   startButton.disabled = false
   cancelButton.disabled = true
   const logArea = doc.getElementById('gpsf-log')
   logArea.innerHTML = ''
   updateFeedback('Idle', doc)
+  const progressBarContainer = doc.getElementById('gpsf-progress-bar-container')
+  progressBarContainer.style.display = 'none'
+  if (progressBar) {
+    progressBar.progress = 0
+  }
 }
 
+/**
+ * Gets all media items from the selected source albums.
+ * @param {Document} doc The document to get the selected albums from.
+ * @returns {Promise<Array|null>} A promise that resolves with an array of media items, or null if no albums are selected.
+ */
 async function getSourceMediaItems (doc) {
   const sourceCheckboxes = doc.querySelectorAll('#gpsf-source-albums input[type="checkbox"]:checked')
   if (sourceCheckboxes.length === 0) {
@@ -166,6 +222,14 @@ async function getSourceMediaItems (doc) {
   return allItems
 }
 
+/**
+ * Processes batches of media items to find saved photos.
+ * @param {Array} items The media items to process.
+ * @param {string} filterType The type of filter to apply ('any', 'saved', 'not-saved').
+ * @param {Document} doc The document to update the feedback in.
+ * @param {number} batchSize The number of items to process in each batch.
+ * @returns {Promise<Array|null>} A promise that resolves with an array of matched media items, or null if the process is cancelled.
+ */
 async function processBatches (items, filterType, doc, batchSize) {
   const matchedItems = []
   let scannedCount = 0
@@ -189,6 +253,11 @@ async function processBatches (items, filterType, doc, batchSize) {
   return matchedItems
 }
 
+/**
+ * Renders the matched photos in the UI.
+ * @param {Array} items The matched media items to render.
+ * @param {Document} doc The document to render the results in.
+ */
 function renderResults (items, doc) {
   const resultsContainer = doc.getElementById('gpsf-results-container')
   resultsContainer.innerHTML = ''
@@ -209,6 +278,11 @@ function renderResults (items, doc) {
   resultsContainer.appendChild(grid)
 }
 
+/**
+ * Adds the matched photos to a new or existing album.
+ * @param {Array} matchedItems The media items to add to the album.
+ * @param {Document} doc The document to get the destination album from.
+ */
 async function addToAlbum (matchedItems, doc) {
   const newAlbumName = doc.getElementById('gpsf-destination-album-new').value.trim()
   let destinationAlbumId = destSelect.value
@@ -235,6 +309,10 @@ async function addToAlbum (matchedItems, doc) {
   }
 }
 
+/**
+ * Starts the process of finding saved photos.
+ * @param {Document} doc The document to work with.
+ */
 export async function startProcess (doc) {
   if (isProcessing) return
   isProcessing = true
@@ -267,6 +345,10 @@ export async function startProcess (doc) {
   resetUIState(doc)
 }
 
+/**
+ * Cancels the current process.
+ * @param {Document} doc The document to update the UI in.
+ */
 function cancelProcess (doc) {
   if (!isProcessing) return
   isCancelled = true
@@ -275,12 +357,25 @@ function cancelProcess (doc) {
   updateFeedback('Cancelling...', doc)
 }
 
+/**
+ * Adds event listeners to the UI elements.
+ * @param {Document} doc The document to add the event listeners to.
+ */
 function addEventListeners (doc) {
   doc.getElementById('gpsf-start-button').addEventListener('click', () => startProcess(doc))
   doc.getElementById('gpsf-cancel-button').addEventListener('click', () => cancelProcess(doc))
   doc.getElementById('gpsf-close-button').addEventListener('click', () => doc.defaultView.close())
+  doc.getElementById('gpsf-select-all-checkbox').addEventListener('change', (event) => {
+    const checkboxes = doc.querySelectorAll('#gpsf-source-albums input[type="checkbox"]')
+    checkboxes.forEach(checkbox => {
+      checkbox.checked = event.target.checked
+    })
+  })
 }
 
+/**
+ * The main function of the userscript.
+ */
 function main () {
   if (typeof unsafeWindow === 'undefined') {
     window.unsafeWindow = window

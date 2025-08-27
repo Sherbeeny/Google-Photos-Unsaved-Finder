@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Timestamp Versioning.
 
+## [2025.08.27-2346] - 2025-08-27
+
+### Added
+- JSDoc comments to all major functions in `src/main.js` for better code documentation.
+- A visual MDC Linear Progress bar to the UI to provide better feedback during the scanning process.
+
+### Changed
+- The Rollup build process now includes `rollup-plugin-terser` to minify the production userscript.
+
+### Fixed
+- A critical typo in the MDC script URL that was preventing the script from loading and executing in the E2E test environment.
+- Corrected 31 linting errors related to indentation and extra semicolons.
+
 ## [2025.08.27-1947] - 2025-08-27
 
 ### Added

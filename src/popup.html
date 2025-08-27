@@ -59,6 +59,23 @@
     <p>This script will find photos in selected albums that are not saved to your library.</p>
     <div class="gpsf-form-group">
       <h3 class="mdc-typography--subtitle1">1. Select Source Album(s)</h3>
+      <div class="mdc-form-field">
+        <div class="mdc-checkbox">
+          <input type="checkbox"
+                 class="mdc-checkbox__native-control"
+                 id="gpsf-select-all-checkbox"/>
+          <div class="mdc-checkbox__background">
+            <svg class="mdc-checkbox__checkmark"
+                 viewBox="0 0 24 24">
+              <path class="mdc-checkbox__checkmark-path"
+                    fill="none"
+                    d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+            </svg>
+            <div class="mdc-checkbox__mixedmark"></div>
+          </div>
+        </div>
+        <label for="gpsf-select-all-checkbox">Select All</label>
+      </div>
       <div id="gpsf-source-albums" class="mdc-list" role="group" aria-label="Source Albums">
         <p class="mdc-typography--body2">Loading albums...</p>
       </div>
@@ -147,6 +164,18 @@
     <div class="gpsf-feedback">
       <p id="gpsf-status" class="mdc-typography--body2">Status: Idle</p>
       <p id="gpsf-stats" class="mdc-typography--body2">Scanned: 0/0 | Matches: 0</p>
+      <div id="gpsf-progress-bar-container" style="margin-top: 10px; display: none;">
+        <div role="progressbar" class="mdc-linear-progress">
+          <div class="mdc-linear-progress__buffering-dots"></div>
+          <div class="mdc-linear-progress__buffer"></div>
+          <div class="mdc-linear-progress__bar mdc-linear-progress__primary-bar">
+            <span class="mdc-linear-progress__bar-inner"></span>
+          </div>
+          <div class="mdc-linear-progress__bar mdc-linear-progress__secondary-bar">
+            <span class="mdc-linear-progress__bar-inner"></span>
+          </div>
+        </div>
+      </div>
       <div id="gpsf-log" class="gpsf-log mdc-typography--caption"></div>
     </div>
     <div id="gpsf-results-container" class="photo-grid"></div>
