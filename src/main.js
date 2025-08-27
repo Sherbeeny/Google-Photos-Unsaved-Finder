@@ -400,12 +400,12 @@ function main () {
 // Self-executing anonymous function for the final userscript
 (function () {
   if (typeof GM_info !== 'undefined' && GM_info.scriptHandler === 'Tampermonkey') {
-    const mdcScript = document.createElement('script')
-    mdcScript.src = 'https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js'
-    mdcScript.onload = main
-    document.head.appendChild(mdcScript)
+    // In the live userscript, run main immediately to avoid CSP issues on the host page.
+    // The popup window will handle loading MDC for itself.
+    main()
   } else {
-    // In a test environment, load MDC and then run main
+    // In the E2E test environment, the popup seems to have trouble loading external scripts.
+    // Therefore, we load MDC on the main test page first, and then call main().
     const mdcScript = document.createElement('script')
     mdcScript.src = 'https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js'
     mdcScript.onload = main

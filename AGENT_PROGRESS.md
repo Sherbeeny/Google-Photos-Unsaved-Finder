@@ -12,10 +12,9 @@
 - **Bug Fixing & Refinement:**
     - Resolved a critical bug where E2E tests failed due to a typo in a script URL.
     - Fixed 31 linting errors.
-    - **Addressed user feedback on the release process:**
-        - Removed `terser` minification from the build process to ensure the final userscript is human-readable and valid for Tampermonkey.
-        - Modified the GitHub Actions workflow to mark all automated releases as "pre-releases".
+    - Addressed user feedback on the release process by removing minification and marking releases as pre-releases.
+    - Fixed a critical bug where the Tampermonkey menu command would not appear due to a CSP violation on the host page. Refactored the script's entry point to fix the issue while ensuring E2E tests still pass.
 - **Process Adherence:** After an initial oversight, successfully followed the full pre-commit routine for all submissions, including versioning, changelog updates, and linting.
 
 ### Known Issues and Challenges
-- None at this time. All tests are passing and all user feedback has been addressed.
+- None. All known issues have been addressed and all tests are passing.
