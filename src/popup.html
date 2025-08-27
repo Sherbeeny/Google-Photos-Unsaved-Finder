@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Google Photos Saved Finder</title>
+  <link rel="stylesheet" href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css">
+  <style>
+    body {
+      font-family: Roboto, sans-serif;
+      margin: 20px;
+    }
+    .mdc-dialog__title {
+      font-size: 1.25rem;
+      font-weight: 500;
+    }
+    .mdc-dialog__content {
+      padding: 20px;
+    }
+    .gpsf-form-group {
+      margin-bottom: 20px;
+    }
+    .gpsf-log {
+      height: 100px;
+      overflow-y: scroll;
+      border: 1px solid #ccc;
+      padding: 5px;
+      margin-top: 10px;
+      font-family: monospace;
+      font-size: 12px;
+      background-color: #f5f5f5;
+    }
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+    }
+    .photo-grid-item {
+      position: relative;
+    }
+    .photo-grid-item img {
+      width: 100%;
+      height: auto;
+    }
+    .photo-grid-item .overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      padding: 5px;
+      font-size: 12px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h2 class="mdc-dialog__title" id="gpsf-dialog-title">Google Photos Saved Finder</h2>
+  <div class="mdc-dialog__content" id="gpsf-dialog-content">
+    <p>This script will find photos in selected albums that are not saved to your library.</p>
+    <div class="gpsf-form-group">
+      <h3 class="mdc-typography--subtitle1">1. Select Source Album(s)</h3>
+      <div id="gpsf-source-albums" class="mdc-list" role="group" aria-label="Source Albums">
+        <p class="mdc-typography--body2">Loading albums...</p>
+      </div>
+    </div>
+    <div class="gpsf-form-group">
+      <h3 class="mdc-typography--subtitle1">2. Select Filter Type</h3>
+      <div class="mdc-form-field">
+        <div class="mdc-radio">
+          <input class="mdc-radio__native-control" type="radio" id="gpsf-filter-any" name="filter-type" value="any" checked>
+          <div class="mdc-radio__background">
+            <div class="mdc-radio__outer-circle"></div>
+            <div class="mdc-radio__inner-circle"></div>
+          </div>
+        </div>
+        <label for="gpsf-filter-any">Any</label>
+      </div>
+      <div class="mdc-form-field">
+        <div class="mdc-radio">
+          <input class="mdc-radio__native-control" type="radio" id="gpsf-filter-saved" name="filter-type" value="saved">
+          <div class="mdc-radio__background">
+            <div class="mdc-radio__outer-circle"></div>
+            <div class="mdc-radio__inner-circle"></div>
+          </div>
+        </div>
+        <label for="gpsf-filter-saved">Saved</label>
+      </div>
+      <div class="mdc-form-field">
+        <div class="mdc-radio">
+          <input class="mdc-radio__native-control" type="radio" id="gpsf-filter-not-saved" name="filter-type" value="not-saved">
+          <div class="mdc-radio__background">
+            <div class="mdc-radio__outer-circle"></div>
+            <div class="mdc-radio__inner-circle"></div>
+          </div>
+        </div>
+        <label for="gpsf-filter-not-saved">Not Saved</label>
+      </div>
+    </div>
+    <div class="gpsf-form-group">
+      <h3 class="mdc-typography--subtitle1">3. Select Destination Album</h3>
+      <div class="mdc-select mdc-select--outlined" id="gpsf-destination-album-select-container">
+        <div class="mdc-select__anchor">
+          <span class="mdc-notched-outline">
+            <span class="mdc-notched-outline__leading"></span>
+            <span class="mdc-notched-outline__notch">
+              <span class="mdc-floating-label">Choose existing album...</span>
+            </span>
+            <span class="mdc-notched-outline__trailing"></span>
+          </span>
+          <span class="mdc-select__selected-text-container">
+            <span class="mdc-select__selected-text"></span>
+          </span>
+          <span class="mdc-select__dropdown-icon">
+            <svg class="mdc-select__dropdown-icon-graphic" viewBox="7 10 10 5"><polygon class="mdc-select__dropdown-icon-inactive" stroke="none" fill-rule="evenodd" points="7 10 12 15 17 10"></polygon><polygon class="mdc-select__dropdown-icon-active" stroke="none" fill-rule="evenodd" points="7 15 12 10 17 15"></polygon></svg>
+          </span>
+        </div>
+        <div class="mdc-select__menu mdc-menu mdc-menu-surface">
+          <ul class="mdc-list" id="gpsf-destination-album-select">
+          </ul>
+        </div>
+      </div>
+      <p class="mdc-typography--body2" style="text-align: center; margin: 10px 0;">OR</p>
+      <label class="mdc-text-field mdc-text-field--outlined" id="gpsf-destination-album-new-container">
+        <span class="mdc-notched-outline">
+          <span class="mdc-notched-outline__leading"></span>
+          <span class="mdc-notched-outline__notch">
+            <span class="mdc-floating-label">Create new album...</span>
+          </span>
+          <span class="mdc-notched-outline__trailing"></span>
+        </span>
+        <input type="text" class="mdc-text-field__input" id="gpsf-destination-album-new">
+      </label>
+    </div>
+    <div class="gpsf-form-group">
+      <h3 class="mdc-typography--subtitle1">4. Batch Size</h3>
+      <label class="mdc-text-field mdc-text-field--outlined" id="gpsf-batch-size-container">
+         <span class="mdc-notched-outline">
+          <span class="mdc-notched-outline__leading"></span>
+          <span class="mdc-notched-outline__notch">
+            <span class="mdc-floating-label">Batch Size</span>
+          </span>
+          <span class="mdc-notched-outline__trailing"></span>
+        </span>
+        <input type="number" class="mdc-text-field__input" id="gpsf-batch-size" value="20" min="1" max="100">
+      </label>
+    </div>
+    <div class="gpsf-feedback">
+      <p id="gpsf-status" class="mdc-typography--body2">Status: Idle</p>
+      <p id="gpsf-stats" class="mdc-typography--body2">Scanned: 0/0 | Matches: 0</p>
+      <div id="gpsf-log" class="gpsf-log mdc-typography--caption"></div>
+    </div>
+    <div id="gpsf-results-container" class="photo-grid"></div>
+  </div>
+  <div class="mdc-dialog__actions">
+    <button type="button" class="mdc-button mdc-dialog__button mdc-ripple-upgraded" id="gpsf-cancel-button" disabled>
+      <span class="mdc-button__label">Cancel</span>
+    </button>
+    <button type="button" class="mdc-button mdc-button--raised mdc-dialog__button mdc-ripple-upgraded" id="gpsf-start-button">
+      <span class="mdc-button__label">Start</span>
+    </button>
+    <button type="button" class="mdc-button mdc-dialog__button mdc-ripple-upgraded" id="gpsf-close-button" data-mdc-dialog-action="close">
+      <span class="mdc-button__label">Close</span>
+    </button>
+  </div>
+</body>
+</html>

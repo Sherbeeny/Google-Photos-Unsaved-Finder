@@ -1,11 +1,12 @@
 {
   "name": "google-photos-saved-finder",
-  "version": "2025.08.27-0331",
+  "version": "2025.08.27-1947",
   "description": "A userscript that works with the Google Photos Toolkit (GPTK) to find photos in a specific album based on their 'saved' status and add them to another album for easy bulk actions.",
   "scripts": {
     "build": "./node_modules/.bin/rollup -c",
     "lint": "eslint src/**/*.js",
-    "test": "vitest",
+    "test": "playwright test",
+    "test:e2e": "node tests/e2e.spec.cjs",
     "validate": "npm run lint && npm run test"
   },
   "repository": {
@@ -25,14 +26,17 @@
   },
   "homepage": "https://github.com/Sherbeeny/Google-Photos-Saved-Finder#readme",
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@rollup/plugin-commonjs": "^28.0.6",
     "@rollup/plugin-node-resolve": "^16.0.1",
+    "@vitest/browser": "^3.2.4",
     "eslint": "^8.57.1",
     "eslint-config-standard": "^17.1.0",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-n": "^16.6.2",
     "eslint-plugin-promise": "^6.6.0",
     "jsdom": "^26.1.0",
+    "playwright": "^1.55.0",
     "rollup": "^4.48.1",
     "rollup-plugin-postcss": "^4.0.2",
     "rollup-plugin-string": "^3.0.0",
