@@ -12,13 +12,16 @@ let isCancelled = false
 let startButton, cancelButton, progressBar, uiContainer
 
 /**
- * Ensures a Trusted Types policy exists to allow injecting HTML.
- * This is necessary to work with Google's strict Content Security Policy.
+ * Ensures a Trusted Types policy exists for creating the UI.
+ * Reuses the 'default' policy if it already exists (e.g., created by GPTK),
+ * otherwise creates it as a fallback.
  */
-function createTrustedPolicy () {
-  if (window.trustedTypes && window.trustedTypes.createPolicy) {
-    // This policy is intentionally left blank, as we trust the HTML from uiHtml.
-    window.trustedTypes.createPolicy('default', {
+function setupTrustedTypesPolicy () {
+  if (!window.trustedTypes) return
+  const policyName = 'default'
+  const existingPolicies = window.trustedTypes.getPolicyNames()
+  if (!existingPolicies.includes(policyName)) {
+    window.trustedTypes.createPolicy(policyName, {
       createHTML: (string) => string
     })
   }
@@ -27,24 +30,23 @@ function createTrustedPolicy () {
 /**
  * Asynchronously waits for an element to appear in the DOM.
  * @param {string} selector - The CSS selector of the element to wait for.
- * @param {Document|Element} [root=document] - The root element to search within.
  * @returns {Promise<Element>} A promise that resolves with the found element.
  */
-function waitForElement (selector, root = document) {
+function waitForElement (selector) {
   return new Promise(resolve => {
-    const el = root.querySelector(selector)
+    const el = document.querySelector(selector)
     if (el) {
       resolve(el)
       return
     }
     const observer = new MutationObserver(() => {
-      const found = root.querySelector(selector)
+      const found = document.querySelector(selector)
       if (found) {
         observer.disconnect()
         resolve(found)
       }
     })
-    observer.observe(root, { childList: true, subtree: true })
+    observer.observe(document.body, { childList: true, subtree: true })
   })
 }
 
@@ -133,7 +135,11 @@ function showUI (email) {
   if (!uiContainer) {
     uiContainer = document.createElement('div')
     uiContainer.id = 'gpsf-container'
-    uiContainer.innerHTML = uiHtml
+    // Use the 'default' policy which should now exist.
+    const trustedHtml = window.trustedTypes.getPolicyNames().includes('default')
+      ? trustedTypes.default.createHTML(uiHtml)
+      : uiHtml
+    uiContainer.innerHTML = trustedHtml
     document.body.appendChild(uiContainer)
 
     // Get element references
@@ -409,40 +415,47 @@ function addEventListeners (doc) {
 }
 
 /**
+ * Waits for GPTK to be ready, then initializes and shows the UI.
+ */
+async function initializeAndShowUI () {
+  try {
+    await waitForElement('#gptk-button')
+
+    // Check for GPTK API before proceeding
+    if (!unsafeWindow.gptkApi || !unsafeWindow.gptkApiUtils) {
+      throw new Error('Google Photos Toolkit API not found. Please ensure GPTK is installed and active.')
+    }
+
+    const anchor = await waitForElement('a[aria-label^="Google Account:"]')
+    const label = anchor.getAttribute('aria-label') || ''
+    const match = label.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/)
+    const email = match ? match[1] : 'Unknown Account'
+
+    // Reset GPTK's state in case it was left running
+    if (unsafeWindow.gptkCore) unsafeWindow.gptkCore.isProcessRunning = false
+
+    showUI(email)
+  } catch (error) {
+    console.error(`${SCRIPT_NAME}: Initialization failed.`, error)
+    alert(`${SCRIPT_NAME}: Could not initialize. ${error.message}`)
+  }
+}
+
+/**
  * Main self-executing function for the userscript.
  */
-(async function () {
+(function () {
   // Polyfill unsafeWindow if it's not available
   if (typeof unsafeWindow === 'undefined') {
     window.unsafeWindow = window
   }
 
-  // Ensure a Trusted Types policy exists for our UI.
-  createTrustedPolicy()
+  setupTrustedTypesPolicy()
 
   // Check if we are running in a real Tampermonkey environment
   if (typeof GM_info !== 'undefined' && GM_info.scriptHandler === 'Tampermonkey') {
-    try {
-      // Check for GPTK API before proceeding
-      if (!unsafeWindow.gptkApi || !unsafeWindow.gptkApiUtils) {
-        throw new Error('Google Photos Toolkit API not found. Please ensure GPTK is installed and active.')
-      }
-
-      await waitForElement('#gptk-button')
-      const anchor = await waitForElement('a[aria-label^="Google Account:"]')
-      const label = anchor.getAttribute('aria-label') || ''
-      const match = label.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/)
-      const email = match ? match[1] : 'Unknown Account'
-
-      // Reset GPTK's state in case it was left running
-      if (unsafeWindow.gptkCore) unsafeWindow.gptkCore.isProcessRunning = false
-
-      GM_registerMenuCommand('Start Google Photos Saved Finder', () => showUI(email))
-      console.log(`${SCRIPT_NAME}: Initialized successfully.`)
-    } catch (error) {
-      console.error(`${SCRIPT_NAME}: Initialization failed.`, error)
-      alert(`${SCRIPT_NAME}: Could not initialize. ${error.message}`)
-    }
+    GM_registerMenuCommand('Start Google Photos Saved Finder', initializeAndShowUI)
+    console.log(`${SCRIPT_NAME}: Menu command registered.`)
   } else if (window.E2E_TESTING) {
     // In the E2E test environment, just run the UI directly.
     showUI('test@example.com')

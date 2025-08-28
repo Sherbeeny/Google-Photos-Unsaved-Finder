@@ -3,15 +3,16 @@
 ## Current Session: 2025-08-28
 
 ### Current Task
-- **Fix GitHub Actions Build Failure:** The primary goal of this session is to diagnose and fix the error occurring in the `Build and Release` GitHub Actions workflow.
+- **Fix Userscript Initialization Failure:** The primary goal of this session is to fix a runtime error where the userscript fails to initialize due to a conflict with the GPTK script.
 
 ### Plan
-1.  **Investigate:** Identify the root cause of the build failure from the action logs.
-2.  **Version & Document:** Update `package.json` version, `CHANGELOG.md`, and this file (`AGENT_PROGRESS.md`) as per project standards.
-3.  **Implement Fix:** Modify the `.github/workflows/build.yml` file to correct the build process order and update the Node.js version.
-4.  **Validate:** Run local checks to ensure the fix is working and doesn't introduce new issues.
-5.  **Submit:** Commit the changes to the `by_ai` branch.
+1.  **Update `PROJECT_PROMPT.md`:** Document the newly clarified implementation patterns regarding Trusted Types, GPTK detection, and menu command registration.
+2.  **Version & Document:** Update `package.json` version, `CHANGELOG.md`, and this file (`AGENT_PROGRESS.md`).
+3.  **Implement Fix:** Modify `src/main.js` to align with the new patterns.
+4.  **Validate & Submit:** Run checks, get a code review, and submit the final changes.
 
 ### Progress
-- **Investigation Complete:** The root cause was identified. The `prepare` npm script was being executed by `npm install` before the necessary build artifacts were created by `npm run build`. Additionally, the Node.js version was outdated for a dependency.
+- **Investigation Complete:** The root cause was identified as a Trusted Types policy collision between the two userscripts.
+- **New Requirements Clarified:** The user has provided specific instructions on how to resolve the conflict and improve the initialization logic.
+- **Documentation Updated:** `PROJECT_PROMPT.md` has been updated with the new requirements.
 - **Versioning & Documentation In Progress:** Currently updating `package.json`, `CHANGELOG.md`, and this file.

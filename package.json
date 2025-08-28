@@ -1,6 +1,6 @@
 {
   "name": "google-photos-saved-finder",
-  "version": "2025.08.28-1758",
+  "version": "2025.08.29-0022",
   "description": "A userscript that works with the Google Photos Toolkit (GPTK) to find photos in a specific album based on their 'saved' status and add them to another album for easy bulk actions.",
   "scripts": {
     "build": "./node_modules/.bin/rollup -c",

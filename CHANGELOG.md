@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Timestamp Versioning.
 
+## [2025.08.29-0022] - 2025-08-28
+
+### Fixed
+- Resolved a critical initialization error caused by a Trusted Types policy conflict with the GPTK userscript. The script now reuses the existing 'default' policy instead of creating a new one.
+- The userscript menu command was not appearing. This has been fixed by registering the command immediately on script startup.
+
+### Changed
+- The detection logic for GPTK has been made more robust. The script now waits for the `#gptk-button` element to be visible before initializing, which is a more reliable signal of readiness.
+
+### Documentation
+- Updated `PROJECT_PROMPT.md` to include the new, required implementation patterns for GPTK detection, Trusted Types policy handling, and menu command registration to ensure this knowledge is preserved.
+
 ## [2025.08.28-1758] - 2025-08-28
 
 ### Fixed
