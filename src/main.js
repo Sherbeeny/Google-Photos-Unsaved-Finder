@@ -1,74 +1,88 @@
 import uiHtml from './popup.html'
-import styles from './styles.css'
 
 // State variables
 let albums = []
 let isProcessing = false
 let isCancelled = false
 
-// MDC instances
-let destSelect, startButton, cancelButton, progressBar
+// Element references
+let startButton, cancelButton, progressBar
 
 const SCRIPT_NAME = 'Google Photos Saved Finder'
 
 /**
- * Injects all CSS into the page.
- * @param {Document} doc The document to inject the styles into.
+ * Awaits the appearance of an element in the DOM.
+ * @param {string} selector The CSS selector to wait for.
+ * @param {Document|Element} [root=document] The root element to search within.
+ * @returns {Promise<Element>} A promise that resolves with the found element.
  */
-function injectStyles (doc) {
-  const styleEl = doc.createElement('style')
-  styleEl.textContent = styles
-  doc.head.appendChild(styleEl)
+function waitForElement (selector, root = document) {
+  return new Promise(resolve => {
+    const el = root.querySelector(selector)
+    if (el) {
+      resolve(el)
+      return
+    }
+    const observer = new MutationObserver(() => {
+      const found = root.querySelector(selector)
+      if (found) {
+        observer.disconnect()
+        resolve(found)
+      }
+    })
+    observer.observe(root, { childList: true, subtree: true })
+  })
 }
 
 /**
- * Populates the album lists in the UI with MDC components.
+ * Populates the album lists in the UI.
  * @param {Array} albumList - The list of albums from the GPTK API.
  * @param {Document} doc The document to populate the lists in.
  */
 export function populateAlbumLists (albumList, doc) {
   const sourceList = doc.getElementById('gpsf-source-albums')
-  const destList = doc.getElementById('gpsf-destination-album-select')
+  const destSelect = doc.getElementById('gpsf-destination-album-select')
 
   sourceList.innerHTML = ''
-  destList.innerHTML = '<li class="mdc-list-item mdc-list-item--selected" aria-selected="true" data-value=""><span></span></li>'
+  destSelect.innerHTML = '<option value="" selected>Choose existing album...</option>'
 
   if (!albumList || albumList.length === 0) {
-    sourceList.innerHTML = '<p class="mdc-typography--body2">No albums found.</p>'
+    sourceList.innerHTML = '<li>No albums found.</li>'
     return
   }
 
+  // Add "Select All" checkbox
+  const selectAllLi = doc.createElement('li')
+  const selectAllCheckbox = doc.createElement('input')
+  selectAllCheckbox.type = 'checkbox'
+  selectAllCheckbox.id = 'gpsf-select-all-checkbox'
+  const selectAllLabel = doc.createElement('label')
+  selectAllLabel.htmlFor = 'gpsf-select-all-checkbox'
+  selectAllLabel.textContent = ' Select All'
+  selectAllLabel.style.fontWeight = 'bold'
+  selectAllLi.appendChild(selectAllCheckbox)
+  selectAllLi.appendChild(selectAllLabel)
+  sourceList.appendChild(selectAllLi)
+
   albumList.forEach(album => {
     const checkboxId = `gpsf-album-${album.mediaKey}`
-    const formField = doc.createElement('div')
-    formField.className = 'mdc-form-field'
-    const checkboxDiv = doc.createElement('div')
-    checkboxDiv.className = 'mdc-checkbox'
-    const input = doc.createElement('input')
-    input.type = 'checkbox'
-    input.className = 'mdc-checkbox__native-control'
-    input.id = checkboxId
-    input.value = album.mediaKey
-    input.dataset.title = album.title
-    const bg = doc.createElement('div')
-    bg.className = 'mdc-checkbox__background'
-    bg.innerHTML = '<svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24"><path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/></svg><div class="mdc-checkbox__mixedmark"></div>'
-    checkboxDiv.appendChild(input)
-    checkboxDiv.appendChild(bg)
+    const li = doc.createElement('li')
+    const checkbox = doc.createElement('input')
+    checkbox.type = 'checkbox'
+    checkbox.id = checkboxId
+    checkbox.value = album.mediaKey
+    checkbox.dataset.title = album.title
     const label = doc.createElement('label')
     label.htmlFor = checkboxId
     label.textContent = ` ${album.title} (${album.itemCount})`
-    formField.appendChild(checkboxDiv)
-    formField.appendChild(label)
-    sourceList.appendChild(formField)
-    // eslint-disable-next-line no-new
-    new window.mdc.checkbox.MDCCheckbox(checkboxDiv)
+    li.appendChild(checkbox)
+    li.appendChild(label)
+    sourceList.appendChild(li)
 
-    const listItem = doc.createElement('li')
-    listItem.className = 'mdc-list-item'
-    listItem.dataset.value = album.mediaKey
-    listItem.innerHTML = `<span class="mdc-list-item__text">${album.title} (${album.itemCount})</span>`
-    destList.appendChild(listItem)
+    const option = doc.createElement('option')
+    option.value = album.mediaKey
+    option.textContent = `${album.title} (${album.itemCount})`
+    destSelect.appendChild(option)
   })
 }
 
@@ -90,55 +104,39 @@ export async function loadAlbums (doc) {
 }
 
 /**
- * Initializes all Material Design Components.
- * @param {Document} doc The document to initialize the components in.
- */
-function initializeMDC (doc) {
-  destSelect = new window.mdc.select.MDCSelect(doc.getElementById('gpsf-destination-album-select-container'))
-  startButton = new window.mdc.ripple.MDCRipple(doc.getElementById('gpsf-start-button'))
-  cancelButton = new window.mdc.ripple.MDCRipple(doc.getElementById('gpsf-cancel-button'))
-  progressBar = new window.mdc.linearProgress.MDCLinearProgress(doc.querySelector('#gpsf-progress-bar-container .mdc-linear-progress'))
-  doc.querySelectorAll('.mdc-text-field').forEach(el => new window.mdc.textField.MDCTextField(el))
-  doc.querySelectorAll('.mdc-radio').forEach(el => new window.mdc.radio.MDCRadio(el))
-  doc.querySelectorAll('.mdc-checkbox').forEach(el => new window.mdc.checkbox.MDCCheckbox(el))
-}
-
-/**
  * Shows the main UI.
+ * @param {string} email The user's email address.
  */
-export function showUI () {
-  const popup = window.open('', 'Google Photos Saved Finder', 'width=600,height=800')
+export function showUI (email) {
+  const popup = window.open('', 'Google Photos Saved Finder', 'width=500,height=700')
 
   if (!popup) {
     alert('Please allow popups for this site to use the script.')
     return
   }
 
-  // Use DOMParser to safely parse the HTML string, avoiding document.write
   const parser = new DOMParser()
   const doc = parser.parseFromString(uiHtml, 'text/html')
 
-  // Replace the popup's blank document with the parsed content
-  popup.document.replaceChild(doc.documentElement, popup.document.documentElement)
+  // Clear existing content and append new content, which is safer than replacing the whole documentElement
+  popup.document.head.innerHTML = ''
+  popup.document.body.innerHTML = ''
+  doc.head.childNodes.forEach(node => popup.document.head.appendChild(node.cloneNode(true)))
+  doc.body.childNodes.forEach(node => popup.document.body.appendChild(node.cloneNode(true)))
 
-  injectStyles(popup.document)
-
-  const mdcScript = popup.document.createElement('script')
-  mdcScript.src = 'https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js'
-  mdcScript.onload = () => {
-    try {
-      if (popup.window.mdc) {
-        initializeMDC(popup.document)
-        addEventListeners(popup.document)
-        loadAlbums(popup.document)
-      } else {
-        log('MDC library not loaded in popup.', popup.document, 'error')
-      }
-    } catch (e) {
-      log(`Error initializing MDC in popup: ${e.message}`, popup.document, 'error')
-    }
+  const subtitleEl = popup.document.getElementById('gpsf-subtitle')
+  if (subtitleEl) {
+    subtitleEl.textContent = `For account: ${email}`
   }
-  popup.document.head.appendChild(mdcScript)
+
+  // Get element references
+  startButton = popup.document.getElementById('gpsf-start-button')
+  cancelButton = popup.document.getElementById('gpsf-cancel-button')
+  progressBar = popup.document.getElementById('gpsf-progress-bar')
+
+  // Add event listeners and load initial data
+  addEventListeners(popup.document)
+  loadAlbums(popup.document)
 }
 
 /**
@@ -153,9 +151,6 @@ function log (message, doc, type = 'info') {
   const entry = doc.createElement('div')
   entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`
   entry.className = `log-${type}`
-  if (type === 'error') {
-    entry.style.color = 'red'
-  }
   logArea.appendChild(entry)
   logArea.scrollTop = logArea.scrollHeight
 }
@@ -171,14 +166,13 @@ function log (message, doc, type = 'info') {
 function updateFeedback (status, doc, scanned = 0, total = 0, matches = 0) {
   doc.getElementById('gpsf-status').textContent = `Status: ${status}`
   doc.getElementById('gpsf-stats').textContent = `Scanned: ${scanned}/${total} | Matches: ${matches}`
-  const progressBarContainer = doc.getElementById('gpsf-progress-bar-container')
 
   if (total > 0 && scanned > 0 && scanned <= total) {
-    progressBarContainer.style.display = 'block'
-    progressBar.progress = scanned / total
+    progressBar.style.display = 'block'
+    progressBar.max = total
+    progressBar.value = scanned
   } else {
-    progressBarContainer.style.display = 'none'
-    progressBar.progress = 0
+    progressBar.style.display = 'none'
   }
 }
 
@@ -192,11 +186,6 @@ function resetUIState (doc) {
   const logArea = doc.getElementById('gpsf-log')
   logArea.innerHTML = ''
   updateFeedback('Idle', doc)
-  const progressBarContainer = doc.getElementById('gpsf-progress-bar-container')
-  progressBarContainer.style.display = 'none'
-  if (progressBar) {
-    progressBar.progress = 0
-  }
 }
 
 /**
@@ -205,7 +194,7 @@ function resetUIState (doc) {
  * @returns {Promise<Array|null>} A promise that resolves with an array of media items, or null if no albums are selected.
  */
 async function getSourceMediaItems (doc) {
-  const sourceCheckboxes = doc.querySelectorAll('#gpsf-source-albums input[type="checkbox"]:checked')
+  const sourceCheckboxes = doc.querySelectorAll('#gpsf-source-albums input[type="checkbox"]:not(#gpsf-select-all-checkbox):checked')
   if (sourceCheckboxes.length === 0) {
     log('No source albums selected.', doc, 'error')
     return null
@@ -277,17 +266,12 @@ function renderResults (items, doc) {
     resultsContainer.innerHTML = '<p>No matching photos found.</p>'
     return
   }
-  const grid = doc.createElement('div')
-  grid.className = 'photo-grid'
   items.forEach(item => {
-    const itemEl = doc.createElement('div')
-    itemEl.className = 'photo-grid-item'
     const img = doc.createElement('img')
     img.src = item.url
-    itemEl.appendChild(img)
-    grid.appendChild(itemEl)
+    img.title = item.filename
+    resultsContainer.appendChild(img)
   })
-  resultsContainer.appendChild(grid)
 }
 
 /**
@@ -296,6 +280,7 @@ function renderResults (items, doc) {
  * @param {Document} doc The document to get the destination album from.
  */
 async function addToAlbum (matchedItems, doc) {
+  const destSelect = doc.getElementById('gpsf-destination-album-select')
   const newAlbumName = doc.getElementById('gpsf-destination-album-new').value.trim()
   let destinationAlbumId = destSelect.value
   if (!destinationAlbumId && !newAlbumName) {
@@ -376,63 +361,41 @@ function cancelProcess (doc) {
 function addEventListeners (doc) {
   doc.getElementById('gpsf-start-button').addEventListener('click', () => startProcess(doc))
   doc.getElementById('gpsf-cancel-button').addEventListener('click', () => cancelProcess(doc))
-  doc.getElementById('gpsf-close-button').addEventListener('click', () => doc.defaultView.close())
   doc.getElementById('gpsf-select-all-checkbox').addEventListener('change', (event) => {
-    const checkboxes = doc.querySelectorAll('#gpsf-source-albums input[type="checkbox"]')
+    const checkboxes = doc.querySelectorAll('#gpsf-source-albums input[type="checkbox"]:not(#gpsf-select-all-checkbox)')
     checkboxes.forEach(checkbox => {
       checkbox.checked = event.target.checked
     })
   })
 }
 
-/**
- * The main function of the userscript.
- */
-function main () {
+// Self-executing anonymous function for the final userscript
+(async function () {
   if (typeof unsafeWindow === 'undefined') {
     window.unsafeWindow = window
   }
 
-  if (typeof GM_info === 'undefined' || !GM_info.scriptHandler) {
-    // E2E testing environment
-    if (window.E2E_TESTING) {
-      showUI()
-    }
-  } else {
-    // Tampermonkey environment
-    if (typeof unsafeWindow.gptkApi === 'undefined' || typeof unsafeWindow.gptkApiUtils === 'undefined') {
-      console.error(`${SCRIPT_NAME}: Google Photos Toolkit (GPTK) is not available.`)
-      return
-    }
-    if (unsafeWindow.gptkCore) unsafeWindow.gptkCore.isProcessRunning = false
-    GM_registerMenuCommand('Start Google Photos Saved Finder', showUI)
-  }
-}
-
-/**
- * Waits for the GPTK API to be available before executing a callback.
- * @param {function} callback The function to execute when GPTK is ready.
- */
-function waitForGptk (callback) {
-  if (typeof unsafeWindow.gptkApi !== 'undefined' && typeof unsafeWindow.gptkApiUtils !== 'undefined') {
-    callback()
-  } else {
-    console.log(`${SCRIPT_NAME}: Waiting for Google Photos Toolkit (GPTK) to be available...`)
-    setTimeout(() => waitForGptk(callback), 500)
-  }
-}
-
-// Self-executing anonymous function for the final userscript
-(function () {
   if (typeof GM_info !== 'undefined' && GM_info.scriptHandler === 'Tampermonkey') {
-    // In the live userscript, wait for the companion script GPTK to be ready.
-    waitForGptk(main)
-  } else {
-    // In the E2E test environment, the popup seems to have trouble loading external scripts.
-    // Therefore, we load MDC on the main test page first, and then call main().
-    const mdcScript = document.createElement('script')
-    mdcScript.src = 'https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js'
-    mdcScript.onload = main
-    document.head.appendChild(mdcScript)
+    // In the live userscript, wait for GPTK and the user account to be ready.
+    try {
+      console.log(`${SCRIPT_NAME}: Waiting for GPTK button...`)
+      await waitForElement('#gptk-button')
+      console.log(`${SCRIPT_NAME}: GPTK detected. Waiting for account info...`)
+
+      const anchor = await waitForElement('a[aria-label^="Google Account:"]')
+      const label = anchor.getAttribute('aria-label') || ''
+      const match = label.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/)
+      const email = match ? match[1] : 'Unknown Account'
+      console.log(`${SCRIPT_NAME}: Account found: ${email}`)
+
+      if (unsafeWindow.gptkCore) unsafeWindow.gptkCore.isProcessRunning = false
+      GM_registerMenuCommand('Start Google Photos Saved Finder', () => showUI(email))
+    } catch (error) {
+      console.error(`${SCRIPT_NAME}: Failed to initialize.`, error)
+      alert(`${SCRIPT_NAME}: Could not initialize. Is Google Photos Toolkit (GPTK) installed and active?`)
+    }
+  } else if (window.E2E_TESTING) {
+    // In the E2E test environment, just run the UI directly.
+    showUI('test@example.com')
   }
 })()

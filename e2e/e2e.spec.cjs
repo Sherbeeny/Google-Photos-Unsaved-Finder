@@ -9,29 +9,38 @@ test.describe('Google Photos Saved Finder', () => {
   test.beforeEach(async ({ browser }) => {
     test.setTimeout(60000);
     page = await browser.newPage();
-    // Build the script first
+
+    // Log console messages for debugging
+    page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+
     console.log('Building userscript...');
     const { execSync } = require('child_process');
     execSync('npm run build');
     console.log('Build complete.');
 
     const userscript = fs.readFileSync(path.resolve(__dirname, '../dist/gpsf.user.js'), 'utf8');
-    await page.goto('https://photos.google.com/u/0/');
+
+    await page.goto('about:blank');
+
+    // Set up the mock environment on the main page
     await page.evaluate(() => {
       window.E2E_TESTING = true;
       window.unsafeWindow = window;
       window.gptkApi = {
         getItemInfo: (mediaKey) => {
           if (mediaKey === 'item1') {
-            return Promise.resolve({ mediaKey: 'item1', url: 'https://lh3.googleusercontent.com/12345', savedToYourPhotos: true });
+            return Promise.resolve({ mediaKey: 'item1', filename: 'saved.jpg', url: 'https://lh3.googleusercontent.com/12345', savedToYourPhotos: true });
           }
-          return Promise.resolve({ mediaKey: 'item2', url: 'https://lh3.googleusercontent.com/67890', savedToYourPhotos: false });
+          return Promise.resolve({ mediaKey: 'item2', filename: 'not-saved.jpg', url: 'https://lh3.googleusercontent.com/67890', savedToYourPhotos: false });
         }
       };
       window.gptkApiUtils = {
-        getAllAlbums: () => Promise.resolve([
-          { mediaKey: 'album1', title: 'Test Album', itemCount: 2 }
-        ]),
+        getAllAlbums: () => {
+          console.log('Mock getAllAlbums called');
+          return Promise.resolve([
+            { mediaKey: 'album1', title: 'Test Album', itemCount: 2 }
+          ]);
+        },
         getAllMediaInAlbum: () => Promise.resolve([
           { mediaKey: 'item1' },
           { mediaKey: 'item2' }
@@ -41,16 +50,18 @@ test.describe('Google Photos Saved Finder', () => {
       };
     });
 
-    // The userscript opens a popup, so we need to handle it
-    [popup] = await Promise.all([
-        page.waitForEvent('popup'),
-        page.addScriptTag({ content: userscript }),
-    ]);
+    // Run the userscript, which opens the popup directly in test mode
+    const popupPromise = page.waitForEvent('popup');
+    await page.addScriptTag({ content: userscript });
+    popup = await popupPromise;
+
+    // Log console messages from the popup for debugging
+    popup.on('console', msg => console.log('POPUP LOG:', msg.text()));
 
     await popup.waitForLoadState();
 
-    // Wait for the UI to be injected and the dialog to be open
-    await popup.waitForSelector('#gpsf-dialog-title', { state: 'visible', timeout: 60000 });
+    // Wait for the album list to be populated, which is the best signal that the UI is ready
+    await popup.waitForSelector('#gpsf-album-album1', { state: 'visible', timeout: 30000 });
   });
 
   test('should find saved photos', async () => {
@@ -58,24 +69,23 @@ test.describe('Google Photos Saved Finder', () => {
     await popup.check('input[value="saved"]');
 
     // Select the album
-    await popup.waitForSelector('#gpsf-album-album1');
     await popup.check('#gpsf-album-album1');
 
-    // Click the "Find" button
+    // Click the "Start" button
     await popup.click('#gpsf-start-button');
 
     // Wait for the results to appear
-    await popup.waitForSelector('#gpsf-results-container .photo-grid-item', { timeout: 30000 });
+    await popup.waitForSelector('#gpsf-results-container img', { timeout: 30000 });
 
     // Check if the results are correct
     const photoUrls = await popup.evaluate(() => {
-      const images = Array.from(document.querySelectorAll('#gpsf-results-container .photo-grid-item img'));
+      const images = Array.from(document.querySelectorAll('#gpsf-results-container img'));
       return images.map(img => img.src);
     });
     console.log('Found photo URLs:', photoUrls);
 
     expect(photoUrls).toHaveLength(1);
-    expect(photoUrls[0]).toMatch(/^https:\/\/lh3\.googleusercontent\.com\/12345/);
+    expect(photoUrls[0]).toBe('https://lh3.googleusercontent.com/12345');
   });
 
   test('should find not-saved photos', async () => {
@@ -83,23 +93,22 @@ test.describe('Google Photos Saved Finder', () => {
     await popup.check('input[value="not-saved"]');
 
     // Select the album
-    await popup.waitForSelector('#gpsf-album-album1');
     await popup.check('#gpsf-album-album1');
 
-    // Click the "Find" button
+    // Click the "Start" button
     await popup.click('#gpsf-start-button');
 
     // Wait for the results to appear
-    await popup.waitForSelector('#gpsf-results-container .photo-grid-item', { timeout: 30000 });
+    await popup.waitForSelector('#gpsf-results-container img', { timeout: 30000 });
 
     // Check if the results are correct
     const photoUrls = await popup.evaluate(() => {
-      const images = Array.from(document.querySelectorAll('#gpsf-results-container .photo-grid-item img'));
+      const images = Array.from(document.querySelectorAll('#gpsf-results-container img'));
       return images.map(img => img.src);
     });
     console.log('Found photo URLs:', photoUrls);
 
     expect(photoUrls).toHaveLength(1);
-    expect(photoUrls[0]).toMatch(/^https:\/\/lh3\.googleusercontent\.com\/67890/);
+    expect(photoUrls[0]).toBe('https://lh3.googleusercontent.com/67890');
   });
 });

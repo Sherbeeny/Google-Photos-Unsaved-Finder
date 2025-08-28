@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Timestamp Versioning.
 
+## [2025.08.28-0408] - 2025-08-27
+
+### Changed
+- **Major Architectural Change:** Ripped out the Material Design Components library entirely in favor of native browser UI elements. This resolves numerous, persistent issues with dependency loading, Content Security Policy, and test environment stability. The script is now lighter and has zero runtime dependencies.
+- The UI has been completely redesigned for a more compact and standard layout.
+- Script initialization is now more robust, waiting for the companion GPTK script and the user's account info to be available before registering the menu command.
+
+### Added
+- The user's email address is now detected and displayed in the UI to clarify which account is being used.
+
+### Removed
+- The "Close" button and extra descriptive text were removed from the UI for a cleaner look.
+
+### Fixed
+- All known script loading and race condition bugs.
+
 ## [2025.08.28-0138] - 2025-08-27
 
 ### Fixed
