@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Timestamp Versioning.
 
+## [2025.08.28-1758] - 2025-08-28
+
+### Fixed
+- The GitHub Actions workflow was failing during the `npm install` step.
+- The `prepare` script was running before the project was built, causing a "file not found" error.
+- The workflow has been corrected to build the project before running the prepare script.
+- The Node.js version in the workflow has been updated to `20` to match dependency requirements.
+
 ## [2025.08.28-1408] - 2025-08-28
 
 ### Added
