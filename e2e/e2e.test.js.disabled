@@ -1,29 +1,32 @@
-const { test, expect } = require('@playwright/test');
+const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
-test.describe('Google Photos Saved Finder', () => {
+describe('Google Photos Saved Finder', () => {
+  let browser;
   let page;
   let popup;
 
-  test.beforeEach(async ({ browser }) => {
-    test.setTimeout(60000);
-    page = await browser.newPage();
-
-    // Log console messages for debugging
-    page.on('console', msg => console.log('PAGE LOG:', msg.text()));
-
+  beforeEach(async () => {
     console.log('Building userscript...');
-    const { execSync } = require('child_process');
     execSync('npm run build');
     console.log('Build complete.');
+
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+    page = await browser.newPage();
+
+    page.on('console', msg => console.log('PAGE LOG:', msg.text()));
 
     const userscript = fs.readFileSync(path.resolve(__dirname, '../dist/gpsf.user.js'), 'utf8');
 
     await page.goto('about:blank');
 
-    // Set up the mock environment on the main page
     await page.evaluate(() => {
+      console.log('This is a test log from within the page context');
       window.E2E_TESTING = true;
       window.unsafeWindow = window;
       window.gptkApi = {
@@ -35,12 +38,9 @@ test.describe('Google Photos Saved Finder', () => {
         }
       };
       window.gptkApiUtils = {
-        getAllAlbums: () => {
-          console.log('Mock getAllAlbums called');
-          return Promise.resolve([
-            { mediaKey: 'album1', title: 'Test Album', itemCount: 2 }
-          ]);
-        },
+        getAllAlbums: () => Promise.resolve([
+          { mediaKey: 'album1', title: 'Test Album', itemCount: 2 }
+        ]),
         getAllMediaInAlbum: () => Promise.resolve([
           { mediaKey: 'item1' },
           { mediaKey: 'item2' }
@@ -50,34 +50,32 @@ test.describe('Google Photos Saved Finder', () => {
       };
     });
 
-    // Run the userscript, which opens the popup directly in test mode
-    const popupPromise = page.waitForEvent('popup');
-    await page.addScriptTag({ content: userscript });
-    popup = await popupPromise;
+    const popupPromise = new Promise(resolve => browser.on('targetcreated', async target => {
+        if (target.type() === 'page') {
+            const newPage = await target.page();
+            resolve(newPage);
+        }
+    }));
 
-    // Log console messages from the popup for debugging
+    await page.addScriptTag({ content: userscript });
+
+    popup = await popupPromise;
     popup.on('console', msg => console.log('POPUP LOG:', msg.text()));
 
-    await popup.waitForLoadState();
+    await popup.waitForSelector('#gpsf-album-album1', { visible: true });
+  });
 
-    // Wait for the album list to be populated, which is the best signal that the UI is ready
-    await popup.waitForSelector('#gpsf-album-album1', { state: 'visible', timeout: 30000 });
+  afterEach(async () => {
+    await browser.close();
   });
 
   test('should find saved photos', async () => {
-    // Select the "Saved" filter
-    await popup.check('input[value="saved"]');
-
-    // Select the album
-    await popup.check('#gpsf-album-album1');
-
-    // Click the "Start" button
+    await popup.click('input[value="saved"]');
+    await popup.click('#gpsf-album-album1');
     await popup.click('#gpsf-start-button');
 
-    // Wait for the results to appear
-    await popup.waitForSelector('#gpsf-results-container img', { timeout: 30000 });
+    await popup.waitForSelector('#gpsf-results-container img');
 
-    // Check if the results are correct
     const photoUrls = await popup.evaluate(() => {
       const images = Array.from(document.querySelectorAll('#gpsf-results-container img'));
       return images.map(img => img.src);
@@ -89,19 +87,12 @@ test.describe('Google Photos Saved Finder', () => {
   });
 
   test('should find not-saved photos', async () => {
-    // Select the "Not Saved" filter
-    await popup.check('input[value="not-saved"]');
-
-    // Select the album
-    await popup.check('#gpsf-album-album1');
-
-    // Click the "Start" button
+    await popup.click('input[value="not-saved"]');
+    await popup.click('#gpsf-album-album1');
     await popup.click('#gpsf-start-button');
 
-    // Wait for the results to appear
-    await popup.waitForSelector('#gpsf-results-container img', { timeout: 30000 });
+    await popup.waitForSelector('#gpsf-results-container img');
 
-    // Check if the results are correct
     const photoUrls = await popup.evaluate(() => {
       const images = Array.from(document.querySelectorAll('#gpsf-results-container img'));
       return images.map(img => img.src);
