@@ -2,194 +2,171 @@
 <html>
 <head>
   <title>Google Photos Saved Finder</title>
-  <link rel="stylesheet" href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css">
   <style>
     body {
-      font-family: Roboto, sans-serif;
-      margin: 20px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 16px;
+      background-color: #f5f5f5;
+      color: #202124;
+      width: 450px;
     }
-    .mdc-dialog__title {
-      font-size: 1.25rem;
+    h2 {
+      font-size: 1.2rem;
+      margin: 0 0 4px 0;
+    }
+    h3 {
+      font-size: 0.9rem;
       font-weight: 500;
+      color: #5f6368;
+      margin: 0 0 16px 0;
     }
-    .mdc-dialog__content {
-      padding: 20px;
-    }
-    .gpsf-form-group {
+    .section {
       margin-bottom: 20px;
     }
-    .gpsf-log {
+    label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+    }
+    input[type="text"],
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .album-list-container {
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 8px;
+      background-color: #fff;
+    }
+    #gpsf-source-albums {
+      list-style-type: none;
+      padding: 0;
+      margin: 0;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+    #gpsf-source-albums li {
+      display: flex;
+      align-items: center;
+      padding: 4px 0;
+    }
+    #gpsf-source-albums li label {
+      margin-bottom: 0;
+      font-weight: normal;
+      margin-left: 6px;
+    }
+    .radio-group {
+      display: flex;
+      gap: 20px;
+    }
+    .radio-group label {
+      font-weight: normal;
+    }
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    button {
+      padding: 8px 16px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    #gpsf-start-button {
+      background-color: #1a73e8;
+      color: white;
+      border-color: #1a73e8;
+    }
+    #gpsf-cancel-button {
+      background-color: #e0e0e0;
+    }
+    .feedback {
+      margin-top: 16px;
+    }
+    progress {
+      width: 100%;
+      margin-top: 8px;
+      display: none;
+    }
+    .log-container {
       height: 100px;
       overflow-y: scroll;
       border: 1px solid #ccc;
-      padding: 5px;
-      margin-top: 10px;
+      padding: 8px;
+      margin-top: 8px;
       font-family: monospace;
       font-size: 12px;
-      background-color: #f5f5f5;
+      background-color: #fff;
     }
-    .photo-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 10px;
+    .log-container .log-error {
+      color: #d93025;
     }
-    .photo-grid-item {
-      position: relative;
-    }
-    .photo-grid-item img {
-      width: 100%;
-      height: auto;
-    }
-    .photo-grid-item .overlay {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background-color: rgba(0, 0, 0, 0.5);
-      color: white;
-      padding: 5px;
-      font-size: 12px;
-      text-align: center;
+    .log-container .log-success {
+      color: #1e8e3e;
     }
   </style>
 </head>
 <body>
-  <h2 class="mdc-dialog__title" id="gpsf-dialog-title">Google Photos Saved Finder</h2>
-  <div class="mdc-dialog__content" id="gpsf-dialog-content">
-    <p>This script will find photos in selected albums that are not saved to your library.</p>
-    <div class="gpsf-form-group">
-      <h3 class="mdc-typography--subtitle1">1. Select Source Album(s)</h3>
-      <div class="mdc-form-field">
-        <div class="mdc-checkbox">
-          <input type="checkbox"
-                 class="mdc-checkbox__native-control"
-                 id="gpsf-select-all-checkbox"/>
-          <div class="mdc-checkbox__background">
-            <svg class="mdc-checkbox__checkmark"
-                 viewBox="0 0 24 24">
-              <path class="mdc-checkbox__checkmark-path"
-                    fill="none"
-                    d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
-            </svg>
-            <div class="mdc-checkbox__mixedmark"></div>
-          </div>
-        </div>
-        <label for="gpsf-select-all-checkbox">Select All</label>
-      </div>
-      <div id="gpsf-source-albums" class="mdc-list" role="group" aria-label="Source Albums">
-        <p class="mdc-typography--body2">Loading albums...</p>
-      </div>
+  <h2 id="gpsf-dialog-title">Google Photos Saved Finder</h2>
+  <h3 id="gpsf-subtitle"></h3>
+
+  <div class="section">
+    <label>Source Album(s)</label>
+    <div class="album-list-container">
+      <ul id="gpsf-source-albums">
+        <li>Loading albums...</li>
+      </ul>
     </div>
-    <div class="gpsf-form-group">
-      <h3 class="mdc-typography--subtitle1">2. Select Filter Type</h3>
-      <div class="mdc-form-field">
-        <div class="mdc-radio">
-          <input class="mdc-radio__native-control" type="radio" id="gpsf-filter-any" name="filter-type" value="any" checked>
-          <div class="mdc-radio__background">
-            <div class="mdc-radio__outer-circle"></div>
-            <div class="mdc-radio__inner-circle"></div>
-          </div>
-        </div>
-        <label for="gpsf-filter-any">Any</label>
-      </div>
-      <div class="mdc-form-field">
-        <div class="mdc-radio">
-          <input class="mdc-radio__native-control" type="radio" id="gpsf-filter-saved" name="filter-type" value="saved">
-          <div class="mdc-radio__background">
-            <div class="mdc-radio__outer-circle"></div>
-            <div class="mdc-radio__inner-circle"></div>
-          </div>
-        </div>
-        <label for="gpsf-filter-saved">Saved</label>
-      </div>
-      <div class="mdc-form-field">
-        <div class="mdc-radio">
-          <input class="mdc-radio__native-control" type="radio" id="gpsf-filter-not-saved" name="filter-type" value="not-saved">
-          <div class="mdc-radio__background">
-            <div class="mdc-radio__outer-circle"></div>
-            <div class="mdc-radio__inner-circle"></div>
-          </div>
-        </div>
-        <label for="gpsf-filter-not-saved">Not Saved</label>
-      </div>
-    </div>
-    <div class="gpsf-form-group">
-      <h3 class="mdc-typography--subtitle1">3. Select Destination Album</h3>
-      <div class="mdc-select mdc-select--outlined" id="gpsf-destination-album-select-container">
-        <div class="mdc-select__anchor">
-          <span class="mdc-notched-outline">
-            <span class="mdc-notched-outline__leading"></span>
-            <span class="mdc-notched-outline__notch">
-              <span class="mdc-floating-label">Choose existing album...</span>
-            </span>
-            <span class="mdc-notched-outline__trailing"></span>
-          </span>
-          <span class="mdc-select__selected-text-container">
-            <span class="mdc-select__selected-text"></span>
-          </span>
-          <span class="mdc-select__dropdown-icon">
-            <svg class="mdc-select__dropdown-icon-graphic" viewBox="7 10 10 5"><polygon class="mdc-select__dropdown-icon-inactive" stroke="none" fill-rule="evenodd" points="7 10 12 15 17 10"></polygon><polygon class="mdc-select__dropdown-icon-active" stroke="none" fill-rule="evenodd" points="7 15 12 10 17 15"></polygon></svg>
-          </span>
-        </div>
-        <div class="mdc-select__menu mdc-menu mdc-menu-surface">
-          <ul class="mdc-list" id="gpsf-destination-album-select">
-          </ul>
-        </div>
-      </div>
-      <p class="mdc-typography--body2" style="text-align: center; margin: 10px 0;">OR</p>
-      <label class="mdc-text-field mdc-text-field--outlined" id="gpsf-destination-album-new-container">
-        <span class="mdc-notched-outline">
-          <span class="mdc-notched-outline__leading"></span>
-          <span class="mdc-notched-outline__notch">
-            <span class="mdc-floating-label">Create new album...</span>
-          </span>
-          <span class="mdc-notched-outline__trailing"></span>
-        </span>
-        <input type="text" class="mdc-text-field__input" id="gpsf-destination-album-new">
-      </label>
-    </div>
-    <div class="gpsf-form-group">
-      <h3 class="mdc-typography--subtitle1">4. Batch Size</h3>
-      <label class="mdc-text-field mdc-text-field--outlined" id="gpsf-batch-size-container">
-         <span class="mdc-notched-outline">
-          <span class="mdc-notched-outline__leading"></span>
-          <span class="mdc-notched-outline__notch">
-            <span class="mdc-floating-label">Batch Size</span>
-          </span>
-          <span class="mdc-notched-outline__trailing"></span>
-        </span>
-        <input type="number" class="mdc-text-field__input" id="gpsf-batch-size" value="20" min="1" max="100">
-      </label>
-    </div>
-    <div class="gpsf-feedback">
-      <p id="gpsf-status" class="mdc-typography--body2">Status: Idle</p>
-      <p id="gpsf-stats" class="mdc-typography--body2">Scanned: 0/0 | Matches: 0</p>
-      <div id="gpsf-progress-bar-container" style="margin-top: 10px; display: none;">
-        <div role="progressbar" class="mdc-linear-progress">
-          <div class="mdc-linear-progress__buffering-dots"></div>
-          <div class="mdc-linear-progress__buffer"></div>
-          <div class="mdc-linear-progress__bar mdc-linear-progress__primary-bar">
-            <span class="mdc-linear-progress__bar-inner"></span>
-          </div>
-          <div class="mdc-linear-progress__bar mdc-linear-progress__secondary-bar">
-            <span class="mdc-linear-progress__bar-inner"></span>
-          </div>
-        </div>
-      </div>
-      <div id="gpsf-log" class="gpsf-log mdc-typography--caption"></div>
-    </div>
-    <div id="gpsf-results-container" class="photo-grid"></div>
   </div>
-  <div class="mdc-dialog__actions">
-    <button type="button" class="mdc-button mdc-dialog__button mdc-ripple-upgraded" id="gpsf-cancel-button" disabled>
-      <span class="mdc-button__label">Cancel</span>
-    </button>
-    <button type="button" class="mdc-button mdc-button--raised mdc-dialog__button mdc-ripple-upgraded" id="gpsf-start-button">
-      <span class="mdc-button__label">Start</span>
-    </button>
-    <button type="button" class="mdc-button mdc-dialog__button mdc-ripple-upgraded" id="gpsf-close-button" data-mdc-dialog-action="close">
-      <span class="mdc-button__label">Close</span>
-    </button>
+
+  <div class="section">
+    <label>Filter Type</label>
+    <div class="radio-group">
+      <label><input type="radio" name="filter-type" value="any" checked> Any</label>
+      <label><input type="radio" name="filter-type" value="saved"> Saved</label>
+      <label><input type="radio" name="filter-type" value="not-saved"> Not Saved</label>
+    </div>
+  </div>
+
+  <div class="section">
+    <label for="gpsf-destination-album-select">Destination Album</label>
+    <select id="gpsf-destination-album-select"></select>
+    <p style="text-align: center; margin: 8px 0;">OR</p>
+    <label for="gpsf-destination-album-new" style="margin-top: 0;">Create New Album</label>
+    <input type="text" id="gpsf-destination-album-new" placeholder="Enter new album name...">
+  </div>
+
+  <div class="section">
+    <label for="gpsf-batch-size">Batch Size</label>
+    <input type="number" id="gpsf-batch-size" value="20" min="1" max="100">
+  </div>
+
+  <div class="feedback">
+    <div id="gpsf-status">Status: Idle</div>
+    <div id="gpsf-stats" style="margin-top: 4px;">Scanned: 0/0 | Matches: 0</div>
+    <progress id="gpsf-progress-bar" value="0" max="100"></progress>
+    <div id="gpsf-log" class="log-container"></div>
+  </div>
+
+  <div id="gpsf-results-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; margin-top: 16px;"></div>
+
+  <div class="actions">
+    <button id="gpsf-cancel-button" disabled>Cancel</button>
+    <button id="gpsf-start-button">Start</button>
   </div>
 </body>
 </html>

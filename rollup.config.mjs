@@ -18,9 +18,7 @@ const banner = `
 // @grant        GM_registerMenuCommand
 // @grant        unsafeWindow
 // @grant        GM_addStyle
-// @grant        GM_getResourceText
 // @run-at       document-idle
-// @resource     mdcCSS https://cdnjs.cloudflare.com/ajax/libs/material-components-web/14.0.0/material-components-web.min.css
 // @homepageURL  ${pkg.homepage}
 // @supportURL   ${pkg.bugs.url}
 // @updateURL    https://github.com/Sherbeeny/Google-Photos-Saved-Finder/releases/latest/download/gpsf.user.js
