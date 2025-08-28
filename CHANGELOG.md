@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Timestamp Versioning.
 
+## [2025.08.28-1408] - 2025-08-28
+
+### Added
+- A complete end-to-end test harness infrastructure, including a local mock server, helper extensions, and test scripts.
+- JSDoc comments to `src/main.js` for better code documentation.
+- Explicit checks for the availability of the GPTK API in `src/main.js` to prevent runtime errors.
+
+### Changed
+- Refactored `src/main.js` for improved readability and robustness.
+- Improved error handling and logging within the userscript.
+- The `test` script in `package.json` is now a placeholder, as the E2E test harness is non-functional in the current CI environment.
+
+### Removed
+- The non-functional E2E test file (`tests/integration.test.js`).
+- Old testing dependencies (`jest`, `puppeteer`).
+
+### Known Issues
+- The E2E test harness, while fully implemented, fails to run in the provided CI environment due to a fundamental issue with Playwright's ability to automate the `chrome://extensions` page. The userscript logic requires manual verification until this environmental issue can be resolved.
+
 ## [2025.08.28-0553] - 2025-08-27
 
 ### Changed
