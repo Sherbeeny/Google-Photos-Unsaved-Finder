@@ -6,9 +6,21 @@ let isProcessing = false
 let isCancelled = false
 
 // Element references
-let startButton, cancelButton, progressBar
+let startButton, cancelButton, progressBar, uiContainer
 
 const SCRIPT_NAME = 'Google Photos Saved Finder'
+
+/**
+ * Creates a Trusted Types policy to allow injecting HTML.
+ * This is necessary to work with Google's strict Content Security Policy.
+ */
+function createTrustedPolicy () {
+  if (window.trustedTypes && window.trustedTypes.createPolicy) {
+    window.trustedTypes.createPolicy('default', {
+      createHTML: (string) => string
+    })
+  }
+}
 
 /**
  * Awaits the appearance of an element in the DOM.
@@ -51,7 +63,6 @@ export function populateAlbumLists (albumList, doc) {
     return
   }
 
-  // Add "Select All" checkbox
   const selectAllLi = doc.createElement('li')
   const selectAllCheckbox = doc.createElement('input')
   selectAllCheckbox.type = 'checkbox'
@@ -104,53 +115,54 @@ export async function loadAlbums (doc) {
 }
 
 /**
+ * Hides the main UI.
+ */
+function hideUI() {
+    if (uiContainer) {
+        uiContainer.style.display = 'none';
+    }
+}
+
+/**
  * Shows the main UI.
  * @param {string} email The user's email address.
  */
 export function showUI (email) {
-  const popup = window.open('', 'Google Photos Saved Finder', 'width=500,height=700')
+    if (!uiContainer) {
+        uiContainer = document.createElement('div');
+        uiContainer.id = 'gpsf-container';
+        uiContainer.innerHTML = uiHtml;
+        document.body.appendChild(uiContainer);
 
-  if (!popup) {
-    alert('Please allow popups for this site to use the script.')
-    return
-  }
+        // Get element references
+        startButton = document.getElementById('gpsf-start-button');
+        cancelButton = document.getElementById('gpsf-cancel-button');
+        progressBar = document.getElementById('gpsf-progress-bar');
 
-  const parser = new DOMParser()
-  const doc = parser.parseFromString(uiHtml, 'text/html')
+        // Add event listeners and load initial data
+        addEventListeners(document);
+        loadAlbums(document);
+    }
 
-  // Clear existing content and append new content, which is safer than replacing the whole documentElement
-  popup.document.head.innerHTML = ''
-  popup.document.body.innerHTML = ''
-  doc.head.childNodes.forEach(node => popup.document.head.appendChild(node.cloneNode(true)))
-  doc.body.childNodes.forEach(node => popup.document.body.appendChild(node.cloneNode(true)))
-
-  const subtitleEl = popup.document.getElementById('gpsf-subtitle')
-  if (subtitleEl) {
-    subtitleEl.textContent = `For account: ${email}`
-  }
-
-  // Get element references
-  startButton = popup.document.getElementById('gpsf-start-button')
-  cancelButton = popup.document.getElementById('gpsf-cancel-button')
-  progressBar = popup.document.getElementById('gpsf-progress-bar')
-
-  // Add event listeners and load initial data
-  addEventListeners(popup.document)
-  loadAlbums(popup.document)
+    uiContainer.style.display = 'block';
+    const subtitleEl = document.getElementById('gpsf-subtitle');
+    if (subtitleEl) {
+        subtitleEl.textContent = `For account: ${email}`;
+    }
 }
 
 /**
  * Logs a message to the log area in the UI.
  * @param {string} message The message to log.
  * @param {Document} doc The document to log to.
- * @param {string} type The type of log message (e.g., 'info', 'success', 'error').
  */
 function log (message, doc, type = 'info') {
   const logArea = doc.getElementById('gpsf-log')
   if (!logArea) return
   const entry = doc.createElement('div')
   entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`
-  entry.className = `log-${type}`
+  if (type === 'error') entry.style.color = '#d93025'
+  if (type === 'success') entry.style.color = '#1e8e3e'
   logArea.appendChild(entry)
   logArea.scrollTop = logArea.scrollHeight
 }
@@ -159,9 +171,6 @@ function log (message, doc, type = 'info') {
  * Updates the feedback area in the UI.
  * @param {string} status The status message to display.
  * @param {Document} doc The document to update.
- * @param {number} scanned The number of items scanned.
- * @param {number} total The total number of items to scan.
- * @param {number} matches The number of matches found.
  */
 function updateFeedback (status, doc, scanned = 0, total = 0, matches = 0) {
   doc.getElementById('gpsf-status').textContent = `Status: ${status}`
@@ -191,7 +200,6 @@ function resetUIState (doc) {
 /**
  * Gets all media items from the selected source albums.
  * @param {Document} doc The document to get the selected albums from.
- * @returns {Promise<Array|null>} A promise that resolves with an array of media items, or null if no albums are selected.
  */
 async function getSourceMediaItems (doc) {
   const sourceCheckboxes = doc.querySelectorAll('#gpsf-source-albums input[type="checkbox"]:not(#gpsf-select-all-checkbox):checked')
@@ -228,8 +236,6 @@ async function getSourceMediaItems (doc) {
  * @param {Array} items The media items to process.
  * @param {string} filterType The type of filter to apply ('any', 'saved', 'not-saved').
  * @param {Document} doc The document to update the feedback in.
- * @param {number} batchSize The number of items to process in each batch.
- * @returns {Promise<Array|null>} A promise that resolves with an array of matched media items, or null if the process is cancelled.
  */
 async function processBatches (items, filterType, doc, batchSize) {
   const matchedItems = []
@@ -360,7 +366,10 @@ function cancelProcess (doc) {
  */
 function addEventListeners (doc) {
   doc.getElementById('gpsf-start-button').addEventListener('click', () => startProcess(doc))
-  doc.getElementById('gpsf-cancel-button').addEventListener('click', () => cancelProcess(doc))
+  doc.getElementById('gpsf-cancel-button').addEventListener('click', () => {
+      cancelProcess(doc);
+      hideUI();
+  })
   doc.getElementById('gpsf-select-all-checkbox').addEventListener('change', (event) => {
     const checkboxes = doc.querySelectorAll('#gpsf-source-albums input[type="checkbox"]:not(#gpsf-select-all-checkbox)')
     checkboxes.forEach(checkbox => {
@@ -375,18 +384,17 @@ function addEventListeners (doc) {
     window.unsafeWindow = window
   }
 
+  // Create a Trusted Types policy to allow injecting our UI HTML.
+  createTrustedPolicy()
+
   if (typeof GM_info !== 'undefined' && GM_info.scriptHandler === 'Tampermonkey') {
     // In the live userscript, wait for GPTK and the user account to be ready.
     try {
-      console.log(`${SCRIPT_NAME}: Waiting for GPTK button...`)
       await waitForElement('#gptk-button')
-      console.log(`${SCRIPT_NAME}: GPTK detected. Waiting for account info...`)
-
       const anchor = await waitForElement('a[aria-label^="Google Account:"]')
       const label = anchor.getAttribute('aria-label') || ''
       const match = label.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/)
       const email = match ? match[1] : 'Unknown Account'
-      console.log(`${SCRIPT_NAME}: Account found: ${email}`)
 
       if (unsafeWindow.gptkCore) unsafeWindow.gptkCore.isProcessRunning = false
       GM_registerMenuCommand('Start Google Photos Saved Finder', () => showUI(email))
