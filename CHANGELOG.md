@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Timestamp Versioning.
 
+## [2025.08.29-0118] - 2025-08-28
+
+### Fixed
+- A `TypeError` that occurred during script initialization. The previous implementation used a non-standard method (`getPolicyNames`) to check for Trusted Types policies. This has been replaced with a standards-compliant `try...catch` block and the correct use of the `trustedTypes.default` property.
+
 ## [2025.08.29-0022] - 2025-08-28
 
 ### Fixed

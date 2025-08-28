@@ -13,17 +13,22 @@ let startButton, cancelButton, progressBar, uiContainer
 
 /**
  * Ensures a Trusted Types policy exists for creating the UI.
- * Reuses the 'default' policy if it already exists (e.g., created by GPTK),
- * otherwise creates it as a fallback.
+ * Uses a try-catch block to gracefully handle cases where the 'default'
+ * policy has already been created by another script (e.g., GPTK).
  */
 function setupTrustedTypesPolicy () {
   if (!window.trustedTypes) return
-  const policyName = 'default'
-  const existingPolicies = window.trustedTypes.getPolicyNames()
-  if (!existingPolicies.includes(policyName)) {
-    window.trustedTypes.createPolicy(policyName, {
+  try {
+    // Attempt to create the policy.
+    window.trustedTypes.createPolicy('default', {
       createHTML: (string) => string
     })
+  } catch (error) {
+    // A TypeError will be thrown if the policy already exists.
+    // We can safely ignore this specific error.
+    if (error.name !== 'TypeError') {
+      console.error(`${SCRIPT_NAME}: Unexpected error creating Trusted Types policy:`, error)
+    }
   }
 }
 
@@ -135,8 +140,8 @@ function showUI (email) {
   if (!uiContainer) {
     uiContainer = document.createElement('div')
     uiContainer.id = 'gpsf-container'
-    // Use the 'default' policy which should now exist.
-    const trustedHtml = window.trustedTypes.getPolicyNames().includes('default')
+    // Use the 'default' policy, which should exist now.
+    const trustedHtml = (window.trustedTypes && trustedTypes.default)
       ? trustedTypes.default.createHTML(uiHtml)
       : uiHtml
     uiContainer.innerHTML = trustedHtml
