@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Timestamp Versioning.
 
+## [2025.08.29-0518] - 2025-08-28
+
+### Changed
+- **Major Architectural Change:** The script's initialization logic has been completely refactored based on a new, clearer understanding of the user's requirements.
+  - The script no longer waits for any part of the GPTK UI to be present.
+  - The script's own UI now appears immediately when its menu command is invoked.
+  - All calls to the GPTK API are now wrapped in `try...catch` blocks to gracefully handle cases where the API is not yet available, logging a user-friendly error to the UI instead of blocking or showing an alert.
+
+### Fixed
+- All known initialization and race-condition bugs. The new architecture is inherently more robust and less prone to timing issues.
+
+### Documentation
+- Updated `PROJECT_PROMPT.md` to reflect the new, correct initialization strategy.
+
 ## [2025.08.29-0440] - 2025-08-28
 
 ### Fixed

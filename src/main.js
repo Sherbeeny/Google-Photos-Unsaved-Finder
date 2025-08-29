@@ -90,15 +90,16 @@ function populateAlbumLists (albumList, doc) {
  * @param {Document} doc - The document object of the UI.
  */
 async function loadAlbums (doc) {
-  log('Loading albums...', doc)
+  log('Attempting to load albums via GPTK API...', doc)
   try {
     albums = await unsafeWindow.gptkApiUtils.getAllAlbums()
     albums.sort((a, b) => a.title.localeCompare(b.title))
     populateAlbumLists(albums, doc)
     log(`${albums.length} albums loaded successfully.`, doc, 'success')
   } catch (error) {
-    console.error(`${SCRIPT_NAME}: Failed to load albums. Is GPTK API available?`, error)
-    log('Error loading albums. Is GPTK running and its API available?', doc, 'error')
+    const errorMessage = 'Error loading albums. Is the Google Photos Toolkit (GPTK) script installed and active?'
+    console.error(`${SCRIPT_NAME}: ${errorMessage}`, error)
+    log(errorMessage, doc, 'error')
   }
 }
 
@@ -124,15 +125,14 @@ function showUI (email) {
     uiContainer.innerHTML = trustedHtml
     document.body.appendChild(uiContainer)
 
-    // Get element references
-    startButton = document.getElementById('gpsf-start-button')
-    cancelButton = document.getElementById('gpsf-cancel-button')
-    progressBar = document.getElementById('gpsf-progress-bar')
-
     // Use a MutationObserver to robustly wait for the UI elements to be parsed
     const observer = new MutationObserver((mutations, obs) => {
       const startButtonNode = document.getElementById('gpsf-start-button')
       if (startButtonNode) {
+        // Now that the button exists, get all references and add listeners
+        startButton = startButtonNode
+        cancelButton = document.getElementById('gpsf-cancel-button')
+        progressBar = document.getElementById('gpsf-progress-bar')
         addEventListeners(document)
         loadAlbums(document)
         obs.disconnect() // Clean up the observer once done
