@@ -62,6 +62,14 @@ function populateAlbumLists (albumList, doc) {
   selectAllLi.appendChild(selectAllLabel)
   sourceList.appendChild(selectAllLi)
 
+  // Add event listener for the "Select All" checkbox right after creating it
+  selectAllCheckbox.addEventListener('change', (event) => {
+    const checkboxes = doc.querySelectorAll('#gpsf-source-albums input[type="checkbox"]:not(#gpsf-select-all-checkbox)')
+    checkboxes.forEach(checkbox => {
+      checkbox.checked = event.target.checked
+    })
+  })
+
   // Populate album lists
   albumList.forEach(album => {
     const checkboxId = `gpsf-album-${album.mediaKey}`
@@ -92,14 +100,28 @@ function populateAlbumLists (albumList, doc) {
 async function loadAlbums (doc) {
   log('Attempting to load albums via GPTK API...', doc)
   try {
-    albums = await unsafeWindow.gptkApiUtils.getAllAlbums()
-    albums.sort((a, b) => a.title.localeCompare(b.title))
-    populateAlbumLists(albums, doc)
-    log(`${albums.length} albums loaded successfully.`, doc, 'success')
+    const fetchedAlbums = await unsafeWindow.gptkApiUtils.getAllAlbums()
+
+    // Defensively check if the result from the API is a usable array.
+    if (Array.isArray(fetchedAlbums)) {
+      albums = fetchedAlbums
+      albums.sort((a, b) => a.title.localeCompare(b.title))
+      populateAlbumLists(albums, doc)
+      log(`${albums.length} albums loaded successfully.`, doc, 'success')
+    } else {
+      // Handle cases where GPTK returns undefined, null, or something else.
+      albums = []
+      populateAlbumLists(albums, doc) // This will show the "No albums found" message.
+      const errorMessage = 'Error loading albums: The GPTK script did not return a valid album list.'
+      console.error(`${SCRIPT_NAME}: ${errorMessage}`)
+      log(errorMessage, doc, 'error')
+    }
   } catch (error) {
-    const errorMessage = 'Error loading albums. Is the Google Photos Toolkit (GPTK) script installed and active?'
+    const errorMessage = 'An unexpected error occurred while loading albums.'
     console.error(`${SCRIPT_NAME}: ${errorMessage}`, error)
     log(errorMessage, doc, 'error')
+    // Also ensure we show "no albums" UI on unexpected errors.
+    populateAlbumLists([], doc)
   }
 }
 
@@ -125,24 +147,14 @@ function showUI (email) {
     uiContainer.innerHTML = trustedHtml
     document.body.appendChild(uiContainer)
 
-    // Use a MutationObserver to robustly wait for the UI elements to be parsed
-    const observer = new MutationObserver((mutations, obs) => {
-      const startButtonNode = document.getElementById('gpsf-start-button')
-      if (startButtonNode) {
-        // Now that the button exists, get all references and add listeners
-        startButton = startButtonNode
-        cancelButton = document.getElementById('gpsf-cancel-button')
-        progressBar = document.getElementById('gpsf-progress-bar')
-        addEventListeners(document)
-        loadAlbums(document)
-        obs.disconnect() // Clean up the observer once done
-      }
-    })
+    // Get element references and attach listeners for static elements
+    startButton = document.getElementById('gpsf-start-button')
+    cancelButton = document.getElementById('gpsf-cancel-button')
+    progressBar = document.getElementById('gpsf-progress-bar')
+    addEventListeners(document)
 
-    observer.observe(uiContainer, {
-      childList: true,
-      subtree: true
-    })
+    // Immediately try to load albums, which will create dynamic elements
+    loadAlbums(document)
   }
 
   uiContainer.style.display = 'block'
@@ -398,12 +410,6 @@ function addEventListeners (doc) {
   doc.getElementById('gpsf-cancel-button').addEventListener('click', () => {
     cancelProcess(doc)
     hideUI()
-  })
-  doc.getElementById('gpsf-select-all-checkbox').addEventListener('change', (event) => {
-    const checkboxes = doc.querySelectorAll('#gpsf-source-albums input[type="checkbox"]:not(#gpsf-select-all-checkbox)')
-    checkboxes.forEach(checkbox => {
-      checkbox.checked = event.target.checked
-    })
   })
 }
 

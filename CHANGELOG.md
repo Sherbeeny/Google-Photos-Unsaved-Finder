@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2025.08.29-1419] - 2025-08-29
+
+### Fixed
+- **Build Workflow:** Corrected the GitHub Actions workflow in `.github/workflows/build.yml` by updating the Node.js version to '20' and ensuring the `build` step runs before the `prepare` step.
+- **Userscript Race Condition:** Fixed a critical race condition in `src/main.js` where an event listener for the "Select All" checkbox was being attached before the element was created. The listener is now correctly attached immediately after the element is dynamically added to the DOM.
+- **Userscript Robustness:** Improved the `loadAlbums` function in `src/main.js` to be more defensive. It now correctly handles cases where the third-party GPTK API returns `undefined` or other non-array values, preventing the script from crashing.
+
+### Added
+- **E2E Testing:** Implemented a robust end-to-end test suite using Playwright (`tests/e2e.test.js`).
+- **API Mocking:** The E2E test now uses a direct API mocking strategy, which isolates the userscript from its dependencies, leading to faster, more stable, and more reliable tests.
+
+### Changed
+- The E2E test was refactored to remove the dependency on a local server and network interception, simplifying the test setup significantly.
+
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Timestamp Versioning.
 
