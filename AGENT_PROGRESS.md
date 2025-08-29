@@ -4,18 +4,17 @@ This document tracks the current state of development by the AI agent.
 
 ## Last Completed Session Summary
 
-**Version:** `2025.08.29-1857`
-**Branch:** `fix/initialization-and-robustness`
+**Version:** `2025.08.29-2011`
+**Branch:** `fix/build-process-and-initialization` (Proposed)
 
 ### Summary of Work:
-This session was a recovery and refactoring effort to fix a critical initialization bug and improve the project's overall robustness.
+This session successfully fixed a critical initialization bug where the UI would not load. The root cause was identified as an incorrect build process that resulted in an old, broken userscript being executed instead of the correct one.
 
-1.  **Workspace Restoration:** After a series of incorrect commits and tooling failures, the workspace was successfully reverted to a known-good state (commit `2b7b159...`) by using the `view_text_website` tool to retrieve file contents from the public GitHub repository. This restored the correct versions of all critical documentation and source files.
-2.  **Radical Refactoring of `src/main.js`:** The userscript's initialization logic was completely rewritten to follow the user's explicit instructions.
-    - The `showUI` function is now fully decoupled from data loading. It only renders the UI shell with a "Loading..." state, then calls `loadAlbums` asynchronously via `setTimeout`. This guarantees the UI always appears instantly.
-    - The `loadAlbums` function was simplified to remove pre-checks and instead calls the GPTK API directly within a `try...catch` block, displaying any resulting `TypeError` in the UI log as requested.
-3.  **E2E Test Enhancements:** The test suite (`tests/e2e.test.js`) was updated to match the new asynchronous flow. It now correctly tests for the initial "Loading..." state and then asserts the final state for both the success and failure paths.
-4.  **Build System Fix:** The `.github/workflows/build.yml` file was corrected to use the proper Node.js version and build step order.
+1.  **Investigation:** Analyzed the source code (`src/main.js`), the old build artifact (`scripts/saved-finder.user.js`), and the build configuration (`rollup.config.mjs`). This confirmed that the correct logic was in the source, but the build process was not being run correctly.
+2.  **Cleanup:** Deleted the old build artifact `scripts/saved-finder.user.js` to prevent future confusion.
+3.  **Build Process Execution:** Ran `npm run build` to generate the correct userscript at `dist/gpsf.user.js`.
+4.  **Verification:** Confirmed that the new build artifact contains the correct, non-blocking asynchronous logic for UI initialization and data loading.
+5.  **Testing:** Installed Playwright dependencies and ran the E2E test suite (`npm test`). All tests passed, confirming the fix for both the happy path (API available) and sad path (API unavailable).
 
 ### Final Status:
 - All E2E tests are passing.
