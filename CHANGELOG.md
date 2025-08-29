@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Timestamp Versioning.
 
+## [2025.08.29-0440] - 2025-08-28
+
+### Fixed
+- A final, subtle race condition in the UI initialization. The previous `setTimeout` fix was replaced with a more robust `MutationObserver` to ensure event listeners are attached only after the DOM is truly ready.
+
+### Documentation
+- Updated `AGENTS.md` to include a more robust "Pre-plan" and "Pre-commit" routine structure to improve process adherence.
+
 ## [2025.08.29-0413] - 2025-08-28
 
 ### Fixed

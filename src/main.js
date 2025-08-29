@@ -129,11 +129,20 @@ function showUI (email) {
     cancelButton = document.getElementById('gpsf-cancel-button')
     progressBar = document.getElementById('gpsf-progress-bar')
 
-    // Defer listener attachment to ensure elements are in the DOM
-    setTimeout(() => {
-      addEventListeners(document)
-      loadAlbums(document)
-    }, 0)
+    // Use a MutationObserver to robustly wait for the UI elements to be parsed
+    const observer = new MutationObserver((mutations, obs) => {
+      const startButtonNode = document.getElementById('gpsf-start-button')
+      if (startButtonNode) {
+        addEventListeners(document)
+        loadAlbums(document)
+        obs.disconnect() // Clean up the observer once done
+      }
+    })
+
+    observer.observe(uiContainer, {
+      childList: true,
+      subtree: true
+    })
   }
 
   uiContainer.style.display = 'block'
