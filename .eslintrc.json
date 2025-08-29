@@ -12,7 +12,8 @@
     "it": "readonly",
     "expect": "readonly",
     "beforeEach": "readonly",
-    "afterEach": "readonly"
+    "afterEach": "readonly",
+    "trustedTypes": "readonly"
   },
   "parserOptions": {
     "ecmaVersion": "latest",
