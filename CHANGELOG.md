@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2025.08.29-2011] - 2025-08-29
+
+### Fixed
+- **Build Process:** Corrected a critical issue where an old, incorrect build artifact (`scripts/saved-finder.user.js`) was present in the repository, causing the wrong version of the script to be run. The incorrect file has been deleted.
+- **Initialization Failure:** By fixing the build process, the script now correctly uses the intended source code (`src/main.js`), which resolves the longstanding initialization failure. The UI now loads instantly and fetches albums asynchronously, as required.
+
+### Changed
+- The build process now correctly generates the userscript at `dist/gpsf.user.js`, and this is the canonical, tested output.
+
 ## [2025.08.29-1857] - 2025-08-29
 
 ### Fixed
