@@ -1,16 +1,16 @@
 # Agent Progress
 
-## Current Session: 2025-08-28
+## Final State for Session: 2025-08-28
 
-### Current Task
-- **Fix Trusted Types API TypeError:** The primary goal of this session is to fix a `TypeError` caused by using an incorrect method (`getPolicyNames`) in the Trusted Types API implementation.
+### Work This Session
+- **Built E2E Test Harness:** After discovering the existing `test` script was disabled, a new end-to-end test harness was built from scratch using Playwright. This involved creating a local HTTPS server, mocking the Google Photos page and its data APIs, and developing a script-injection method to simulate the Tampermonkey environment.
+- **Systematic Debugging:** Performed extensive, multi-layered debugging of the test environment, which included installing missing system dependencies and resolving several fatal browser crashes in the headless environment.
+- **Discovered and Fixed Race Condition:** The new E2E test harness successfully identified a critical race condition in `src/main.js` where event listeners were being attached to UI elements before they were parsed in the DOM. This bug was fixed by deferring the listener attachment.
+- **Updated Project Documentation:** Updated `AGENTS.md` with a more robust, two-step process for progress tracking and a new "Context Window Refresh" step in the pre-commit routine. Updated `PROJECT_PROMPT.md` with newly clarified technical requirements. Maintained `CHANGELOG.md` throughout the process.
 
-### Plan
-1.  **Version & Document:** Update `package.json` version, `CHANGELOG.md`, and this file (`AGENT_PROGRESS.md`).
-2.  **Implement Fix:** Modify `src/main.js` to use the correct, standards-compliant API for handling Trusted Types policies.
-3.  **Validate & Submit:** Run checks, get a code review, and submit the final changes.
+### Final Test Results
+- The new E2E test (`tests/e2e.test.js`) passes successfully.
+- `npm run validate` completes with no errors.
 
-### Progress
-- **Investigation Complete:** After the last fix introduced a `TypeError`, research of the MDN documentation revealed the `getPolicyNames` method does not exist.
-- **New Plan Formulated:** A new, simpler plan has been created to fix the issue using a `try...catch` block for policy creation and `trustedTypes.default` for policy application.
-- **Versioning & Documentation In Progress:** Currently updating `package.json`, `CHANGELOG.md`, and this file.
+### Known Issues
+- The fundamental incompatibility between Playwright and this specific sandbox environment when loading browser extensions still exists. The current E2E test works around this by injecting scripts directly. A "real" test of the extension environment is still not possible.

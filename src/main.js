@@ -33,29 +33,6 @@ function setupTrustedTypesPolicy () {
 }
 
 /**
- * Asynchronously waits for an element to appear in the DOM.
- * @param {string} selector - The CSS selector of the element to wait for.
- * @returns {Promise<Element>} A promise that resolves with the found element.
- */
-function waitForElement (selector) {
-  return new Promise(resolve => {
-    const el = document.querySelector(selector)
-    if (el) {
-      resolve(el)
-      return
-    }
-    const observer = new MutationObserver(() => {
-      const found = document.querySelector(selector)
-      if (found) {
-        observer.disconnect()
-        resolve(found)
-      }
-    })
-    observer.observe(document.body, { childList: true, subtree: true })
-  })
-}
-
-/**
  * Populates the album dropdowns and lists in the UI.
  * @param {Array<object>} albumList - The list of album objects from the GPTK API.
  * @param {Document} doc - The document object of the UI.
@@ -152,9 +129,11 @@ function showUI (email) {
     cancelButton = document.getElementById('gpsf-cancel-button')
     progressBar = document.getElementById('gpsf-progress-bar')
 
-    // Add event listeners and load initial data
-    addEventListeners(document)
-    loadAlbums(document)
+    // Defer listener attachment to ensure elements are in the DOM
+    setTimeout(() => {
+      addEventListeners(document)
+      loadAlbums(document)
+    }, 0)
   }
 
   uiContainer.style.display = 'block'
@@ -420,19 +399,17 @@ function addEventListeners (doc) {
 }
 
 /**
- * Waits for GPTK to be ready, then initializes and shows the UI.
+ * Initializes and shows the UI. Assumes GPTK is ready.
  */
-async function initializeAndShowUI () {
+function initializeAndShowUI () {
   try {
-    await waitForElement('#gptk-button')
-
     // Check for GPTK API before proceeding
     if (!unsafeWindow.gptkApi || !unsafeWindow.gptkApiUtils) {
       throw new Error('Google Photos Toolkit API not found. Please ensure GPTK is installed and active.')
     }
 
-    const anchor = await waitForElement('a[aria-label^="Google Account:"]')
-    const label = anchor.getAttribute('aria-label') || ''
+    const anchor = document.querySelector('a[aria-label^="Google Account:"]')
+    const label = anchor ? anchor.getAttribute('aria-label') : ''
     const match = label.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/)
     const email = match ? match[1] : 'Unknown Account'
 
@@ -461,8 +438,12 @@ async function initializeAndShowUI () {
   if (typeof GM_info !== 'undefined' && GM_info.scriptHandler === 'Tampermonkey') {
     GM_registerMenuCommand('Start Google Photos Saved Finder', initializeAndShowUI)
     console.log(`${SCRIPT_NAME}: Menu command registered.`)
-  } else if (window.E2E_TESTING) {
-    // In the E2E test environment, just run the UI directly.
-    showUI('test@example.com')
+  }
+
+  // --- E2E Testing ---
+  // Expose the initialization function for Playwright to call
+  if (window.E2E_TESTING) {
+    if (!window.unsafeWindow) window.unsafeWindow = window
+    window.unsafeWindow.gpsf = { initializeAndShowUI }
   }
 })()

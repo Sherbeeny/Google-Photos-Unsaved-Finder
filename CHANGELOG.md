@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Timestamp Versioning.
 
+## [2025.08.29-0226] - 2025-08-28
+
+### Added
+- A fully functional end-to-end test harness (`tests/e2e.test.js`). This test uses Playwright to launch a headless browser, serve a mock version of Google Photos, and inject the userscripts to validate their behavior in a realistic environment.
+- A local HTTPS server (`tests/server.js`) and mock data files (`mocks/`) to support the E2E test.
+
+### Fixed
+- A critical race condition in the script's UI initialization. The `addEventListeners` function was being called before the browser had parsed the UI's HTML, leading to a `TypeError`. This is now fixed by deferring the listener attachment.
+
+### Changed
+- The `test` script in `package.json` now runs the new, working E2E test.
+- The E2E testing strategy has been pivoted from attempting to load a real browser extension (which proved unstable in the environment) to injecting the scripts directly into the page, which is more robust.
+
+### Documentation
+- Updated `AGENTS.md` with a new, mandatory two-step process for updating `AGENT_PROGRESS.md` to improve context preservation.
+
 ## [2025.08.29-0118] - 2025-08-28
 
 ### Fixed

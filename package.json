@@ -1,13 +1,14 @@
 {
   "name": "google-photos-saved-finder",
-  "version": "2025.08.29-0118",
+  "version": "2025.08.29-0226",
   "description": "A userscript that works with the Google Photos Toolkit (GPTK) to find photos in a specific album based on their 'saved' status and add them to another album for easy bulk actions.",
   "scripts": {
     "build": "./node_modules/.bin/rollup -c",
     "lint": "eslint src/**/*.js",
     "prepare": "node tools/fetch-userscripts.js && node tools/patch-gptk.js",
     "patch-gptk": "node tools/patch-gptk.js",
-    "test": "echo 'E2E tests skipped due to environment issues.' && exit 0",
+    "pretest": "npm run build",
+    "test": "playwright test tests/e2e.test.js",
     "validate": "npm run lint && npm run test"
   },
   "repository": {

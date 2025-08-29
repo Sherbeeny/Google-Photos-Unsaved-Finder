@@ -49,14 +49,11 @@ The following instructions are **paramount** and supersede any conflicting gener
 ## Agent State and Progress Management
 
 -   **`AGENT_PROGRESS.md` File**: This project uses a file named `AGENT_PROGRESS.md` located in the root of the repository to track the AI agent's current plan, active tasks, progress, encountered issues, and session-specific notes.
--   **Mandatory Updates**: You **must** update this file:
-    *   At the beginning of your work session: Review the file to understand the last known state. Note your session start.
-    *   Before attempting complex or potentially problematic operations: Document what you are about to do.
-    *   After completing significant tasks or sub-tasks: Mark them as complete and note any relevant outcomes.
-    *   When encountering errors, hangs, or unexpected behavior: Log these issues in detail under the "Known Issues and Challenges" section, including any attempted workarounds.
-    *   Before ending your work session: Ensure `AGENT_PROGRESS.md` accurately reflects the current status, any unresolved issues, and any notes for the next session or for human review.
--   **Purpose**: This file is crucial for maintaining continuity across multiple work sessions, especially if sessions are interrupted or if complex operations (like dependency management) face environmental challenges. It aids in transparently tracking progress and diagnosing persistent problems.
--   **Integrity**: Ensure the information in `AGENT_PROGRESS.md` is accurate and kept up-to-date. It serves as the primary record of your ongoing work. Remove finished work (move to changelog file) and ensure no duplications or out-dated content.
+-   **Two-Step Update Process**: To ensure both resilience and accuracy, you **must** update this file twice per plan:
+    1.  **At the Beginning of a Plan**: As soon as a plan is set, you must immediately update `AGENT_PROGRESS.md`. This update should outline the full plan, the target tasks, and any important notes or hypotheses. This serves as a critical context backup in case the session is interrupted.
+    2.  **At the End of a Plan**: As part of the pre-commit routine (after versioning and testing, but before the final commit), you must update the file again. This final update should reflect the true outcome of the work: document the final state, include the results of any tests, and clean up any outdated information from the initial plan.
+-   **Purpose**: This two-step process is crucial for maintaining continuity across multiple work sessions. The initial update saves the intended plan, while the final update provides an accurate record of the completed work.
+-   **Integrity**: Ensure the information in `AGENT_PROGRESS.md` is accurate. In the final, pre-commit update, remove finished work (move relevant details to `CHANGELOG.md`) and ensure no outdated content remains, keeping the file clean and concise.
 
 ---
 
@@ -109,8 +106,9 @@ These directives are **crucial** for developing this advanced project:
     *   **Update `AGENT_PROGRESS.md`**: Document the work done in the current session.
     *   Testing Emphasis: Ensure all tests cover reliability, speed, lightweight, performance, security, and all other best practice aspects.
 6.  **Dependency Update (if applicable and not part of versioning)**: If `package.json` dependencies (not just version) were changed, ensure `npm install` (or `yarn install`) was run to update the lock file (this might be redundant if step 2 was performed correctly).
-7.  **Prepare Commit Message**: Draft a descriptive commit message. The message should clearly state the purpose of the changes and, if applicable, any known issues (like failing tests).
-8.  **Submit Changes**: Commit all modified files (including `package.json`, `package-lock.json`, `CHANGELOG.md`, `AGENT_PROGRESS.md`, source code, documentation, etc.). All commits **must** be made to a branch named `by_ai`, unless explicitly instructed otherwise by the user for the current session. If such specific instructions are given for a different branch name, those take precedence for that session's commit(s).
+7.  **Context Window Refresh**: Re-read `AGENTS.md`, `PROJECT_PROMPT.md`, `AGENT_PROGRESS.md`, and `CHANGELOG.md` to ensure all instructions and the latest context are fully loaded before committing.
+8.  **Prepare Commit Message**: Draft a descriptive commit message. The message should clearly state the purpose of the changes and, if applicable, any known issues (like failing tests).
+9.  **Submit Changes**: Commit all modified files (including `package.json`, `package-lock.json`, `CHANGELOG.md`, `AGENT_PROGRESS.md`, source code, documentation, etc.). All commits **must** be made to a branch named `by_ai`, unless explicitly instructed otherwise by the user for the current session. If such specific instructions are given for a different branch name, those take precedence for that session's commit(s).
 
 ---
 
