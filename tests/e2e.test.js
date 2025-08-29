@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Google Photos Saved Finder E2E', () => {
-  test('should load the userscript and display the UI correctly', async ({ browser }) => {
+  test('should display UI and load albums when GPTK API is available (Happy Path)', async ({ browser }) => {
     const context = await browser.newContext();
     const page = await context.newPage();
 
@@ -72,6 +72,56 @@ test.describe('Google Photos Saved Finder E2E', () => {
       return checkboxes.every(cb => cb.checked);
     });
     expect(allChecked).toBe(true);
+
+    await context.close();
+  });
+
+  test('should display UI and show an error when GPTK API is not available (Sad Path)', async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+
+    // Add logging to see what's happening in the browser
+    page.on('console', msg => console.log(`[BROWSER] ${msg.type()}: ${msg.text()}`));
+    page.on('pageerror', error => console.error(`[BROWSER PAGE ERROR] ${error.message}`));
+
+    // --- MOCKING STRATEGY (Sad Path) ---
+    // We only mock the GM functions, but critically, we DO NOT mock the gptkApiUtils.
+    // This simulates the real-world scenario where our script runs before GPTK is ready.
+    await page.addInitScript({
+      content: `
+        window.E2E_TESTING = true;
+        window.GM_registerMenuCommand = (name, fn) => {
+          if (name === 'Start Google Photos Saved Finder') {
+            window.gpsf_menu_command = fn;
+          }
+        };
+        window.GM_info = {
+          script: { name: 'GPSF', version: '0.0.0' },
+          scriptHandler: 'Tampermonkey',
+          version: '4.18.1'
+        };
+        // Note: unsafeWindow.gptkApiUtils is deliberately left undefined.
+      `
+    });
+
+    // Navigate to a blank page
+    await page.goto('about:blank');
+
+    // Inject our built userscript
+    await page.addScriptTag({ path: 'dist/gpsf.user.js' });
+
+    // Trigger the userscript's menu command
+    await page.evaluate(() => window.gpsf_menu_command());
+
+    // Assert that the UI container is still visible, even with the error
+    await expect(page.locator('#gpsf-container')).toBeVisible();
+
+    // Assert that the "Select All" checkbox is NOT visible
+    await expect(page.locator('#gpsf-select-all-checkbox')).not.toBeVisible();
+
+    // Assert that the correct error message is displayed in the log
+    const logArea = page.locator('#gpsf-log');
+    await expect(logArea).toContainText('Error: GPTK API not found. Is the script installed and running?');
 
     await context.close();
   });
