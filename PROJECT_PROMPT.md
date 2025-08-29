@@ -19,13 +19,6 @@ The final userscript **MUST NOT** use `@require` to load GPTK. It should rely on
 
 *   **Activation:** The script must not add a new button to the Google Photos header. Instead, it will register a menu command with Tampermonkey using `GM_registerMenuCommand`. The command should be named "Start Google Photos Saved Finder" and will open the script's UI.
 *   **Initialization:** The script must reliably detect if the GPTK API is available before running its main logic. It should use manually enable the GPTK core process flag.
-
-*   **Key Implementation Patterns:** To ensure compatibility and a smooth user experience, the following implementation patterns **must** be followed:
-    *   **Menu Command Registration:** The Tampermonkey menu command (`GM_registerMenuCommand`) **must** be registered immediately when the script first executes.
-    *   **UI Display:** The script's UI **must** be displayed immediately when the user invokes the menu command. The script **must not** wait for GPTK to be ready or perform any other checks before showing its own UI.
-    *   **Graceful API Handling:** After the UI is displayed, the script should attempt to use the GPTK API (e.g., to load albums). This API call **must** be wrapped in a `try...catch` block. If the call fails (because GPTK is not ready or not installed), the error must be caught gracefully and a user-friendly message must be logged to the script's own feedback area. The script must not use `alert()` or block execution.
-    *   **Trusted Types Policy:** To avoid conflicts with GPTK, the script must reuse the `"default"` Trusted Types policy if it already exists. It should only create it as a fallback.
-
 ### 3.2. User Interface (UI)
 
 The UI must be a single, clean modal window adhering to Google's Material Design principles.

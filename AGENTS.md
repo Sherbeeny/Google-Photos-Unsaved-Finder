@@ -49,11 +49,14 @@ The following instructions are **paramount** and supersede any conflicting gener
 ## Agent State and Progress Management
 
 -   **`AGENT_PROGRESS.md` File**: This project uses a file named `AGENT_PROGRESS.md` located in the root of the repository to track the AI agent's current plan, active tasks, progress, encountered issues, and session-specific notes.
--   **Two-Step Update Process**: To ensure both resilience and accuracy, you **must** update this file twice per plan:
-    1.  **At the Beginning of a Plan**: As soon as a plan is set, you must immediately update `AGENT_PROGRESS.md`. This update should outline the full plan, the target tasks, and any important notes or hypotheses. This serves as a critical context backup in case the session is interrupted.
-    2.  **At the End of a Plan**: As part of the pre-commit routine (after versioning and testing, but before the final commit), you must update the file again. This final update should reflect the true outcome of the work: document the final state, include the results of any tests, and clean up any outdated information from the initial plan.
--   **Purpose**: This two-step process is crucial for maintaining continuity across multiple work sessions. The initial update saves the intended plan, while the final update provides an accurate record of the completed work.
--   **Integrity**: Ensure the information in `AGENT_PROGRESS.md` is accurate. In the final, pre-commit update, remove finished work (move relevant details to `CHANGELOG.md`) and ensure no outdated content remains, keeping the file clean and concise.
+-   **Mandatory Updates**: You **must** update this file:
+    *   At the beginning of your work session: Review the file to understand the last known state. Note your session start.
+    *   Before attempting complex or potentially problematic operations: Document what you are about to do.
+    *   After completing significant tasks or sub-tasks: Mark them as complete and note any relevant outcomes.
+    *   When encountering errors, hangs, or unexpected behavior: Log these issues in detail under the "Known Issues and Challenges" section, including any attempted workarounds.
+    *   Before ending your work session: Ensure `AGENT_PROGRESS.md` accurately reflects the current status, any unresolved issues, and any notes for the next session or for human review.
+-   **Purpose**: This file is crucial for maintaining continuity across multiple work sessions, especially if sessions are interrupted or if complex operations (like dependency management) face environmental challenges. It aids in transparently tracking progress and diagnosing persistent problems.
+-   **Integrity**: Ensure the information in `AGENT_PROGRESS.md` is accurate and kept up-to-date. It serves as the primary record of your ongoing work. Remove finished work (move to changelog file) and ensure no duplications or out-dated content.
 
 ---
 
@@ -73,30 +76,41 @@ These directives are **crucial** for developing this advanced project:
 
 -   The `package-lock.json` file (or `yarn.lock` if Yarn is chosen) is **critical** and **must** be committed and kept synchronized with `package.json`. Whenever `package.json` is modified (including version updates, dependency changes), the lock file **must** be updated accordingly by running version sync command of `npm install` (or `yarn install`) immediately after the `package.json` modification and before committing.
 
-## Development Cycle
+## Pre-commit Routine:
 
-Each unit of work must follow this two-phase process:
+**Before EVERY commit, the following steps MUST be performed in order:**
 
-### 1. Pre-Plan Routine
-**Before executing a new plan, you MUST perform the following steps:**
-1.  **Generate and Update Version**: Generate a new timestamp-based version string (`TZ='Africa/Cairo' date +'%Y.%m.%d-%H%M'`) and update the `version` field in `package.json`.
-2.  **Synchronize Lock File**: Run `npm install --ignore-scripts` (or the equivalent for other package managers) to synchronize `package-lock.json` with the new version. The `--ignore-scripts` flag is crucial to avoid running potentially broken build steps.
-3.  **Update Progress File**: Update `AGENT_PROGRESS.md` with the full details of the plan you are about to execute. This serves as a context backup.
+### Pre-commit Checklist:
+- [ ] **Version:** `package.json` version is updated.
+- [ ] **Lock File:** `package-lock.json` is synchronized.
+- [ ] **Linting:** Code passes linter checks.
+- [ ] **Tests:** All tests pass (or failure is documented in commit message).
+- [ ] **Changelog:** `CHANGELOG.md` is updated.
+- [ ] **Progress:** `AGENT_PROGRESS.md` is updated.
+- [ ] **Commit Message:** The commit message is descriptive and follows conventions.
+- [ ] **Branch:** The commit is on the `by_ai` branch.
 
-### 2. Pre-Commit Routine
-**After all code changes for the plan are complete, and before committing, you MUST perform the following steps in order:**
-1.  **Linting**: Run `npm run lint` to check for code style issues and fix any that are reported.
-2.  **Testing**: Run `npm test` to execute all automated tests. All tests must pass. If a test fails due to a bug in the code, you must fix it before proceeding.
-3.  **Final Documentation Update**:
-    *   **`AGENT_PROGRESS.md`**: Perform the second update to this file, detailing the work that was actually completed and the final status of the project (including test results).
-    *   **`CHANGELOG.md`**: Add a new entry for the current version, accurately describing the features, fixes, and changes that were successfully implemented.
-    *   **`README.md` / Other Docs**: Update any other documentation (`README.md`, code comments, etc.) that is impacted by the changes.
-4.  **Context Window Refresh**: This is the final step before preparing the commit message. You must re-read the following files to ensure no instructions have been missed. To enforce this, you **must message the user before reading each file** to provide a visible indicator of this process (e.g., `message_user("Now reading AGENTS.md...")`).
-    *   `AGENTS.md`
-    *   `PROJECT_PROMPT.md`
-    *   `AGENT_PROGRESS.md`
-    *   `CHANGELOG.md`
-5.  **Submit**: After the context refresh is complete, prepare a descriptive commit message and submit all modified files to the `by_ai` branch.
+### Detailed Steps:
+1.  **Update `package.json` Version**:
+    *   Use the command `TZ='Africa/Cairo' date +'%Y.%m.%d-%H%M'` to generate the new version string.
+    *   Update the `version` field in `package.json` with this new string.
+2.  **Synchronize Lock File**:
+    *   Run `npm install` (or `yarn install`) to update `package-lock.json` based on the new version in `package.json`.
+3.  **Run Linter**:
+    *   Run `npm run lint` (or the equivalent command) to check for code style issues. All issues should be fixed before proceeding.
+4.  **Finalize Code Implementation (if applicable)**: If code changes were made, ensure they are complete and robust.
+5.  **Write/Update Unit and Integration Tests (if applicable)**: If code affecting functionality was changed, ensure comprehensive test coverage. All tests **must** pass before committing. Strive for high test coverage for all logic. Seek best practice aspects for testing, including: stability, reliability, speed, light-weight for memory and processing, performance, and security.
+    *   *Note: If tests are failing due to an unresolved issue, this must be clearly stated in the commit message. The primary directive to version every commit still holds, but the commit message must reflect the state.*
+6.  **Update Documentation (as needed)**:
+    *   Update this AI file (`AGENTS.md`) if new permanent instructions are given or if there's a fundamental change in project context/goals.
+    *   Update `README.md` with any changes to usage, configuration, examples, etc.
+    *   Update API documentation (TSDoc comments) for any modified public APIs.
+    *   **Manually finalize entries in `CHANGELOG.md`** for the new version being committed. Ensure all relevant changes are documented clearly and follow the existing format (e.g., categorizing changes under "Fixed", "Added", "Changed", "Removed", "Documentation", "Internal"). There is no automated script for changelog generation; it requires careful manual updates.
+    *   **Update `AGENT_PROGRESS.md`**: Document the work done in the current session.
+    *   Testing Emphasis: Ensure all tests cover reliability, speed, lightweight, performance, security, and all other best practice aspects.
+6.  **Dependency Update (if applicable and not part of versioning)**: If `package.json` dependencies (not just version) were changed, ensure `npm install` (or `yarn install`) was run to update the lock file (this might be redundant if step 2 was performed correctly).
+7.  **Prepare Commit Message**: Draft a descriptive commit message. The message should clearly state the purpose of the changes and, if applicable, any known issues (like failing tests).
+8.  **Submit Changes**: Commit all modified files (including `package.json`, `package-lock.json`, `CHANGELOG.md`, `AGENT_PROGRESS.md`, source code, documentation, etc.). All commits **must** be made to a branch named `by_ai`, unless explicitly instructed otherwise by the user for the current session. If such specific instructions are given for a different branch name, those take precedence for that session's commit(s).
 
 ---
 

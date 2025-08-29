@@ -100,6 +100,15 @@ function populateAlbumLists (albumList, doc) {
 async function loadAlbums (doc) {
   log('Attempting to load albums via GPTK API...', doc)
   try {
+    // Defensively check if the GPTK API and the specific function exist.
+    if (typeof unsafeWindow?.gptkApiUtils?.getAllAlbums !== 'function') {
+      const errorMessage = 'Error: GPTK API not found. Is the script installed and running?'
+      console.error(`${SCRIPT_NAME}: ${errorMessage}`)
+      log(errorMessage, doc, 'error')
+      populateAlbumLists([], doc) // Ensure UI shows "No albums found"
+      return
+    }
+
     const fetchedAlbums = await unsafeWindow.gptkApiUtils.getAllAlbums()
 
     // Defensively check if the result from the API is a usable array.
@@ -147,13 +156,13 @@ function showUI (email) {
     uiContainer.innerHTML = trustedHtml
     document.body.appendChild(uiContainer)
 
-    // Get element references and attach listeners for static elements
+    // Get element references
     startButton = document.getElementById('gpsf-start-button')
     cancelButton = document.getElementById('gpsf-cancel-button')
     progressBar = document.getElementById('gpsf-progress-bar')
-    addEventListeners(document)
 
-    // Immediately try to load albums, which will create dynamic elements
+    // Add event listeners and load initial data
+    addEventListeners(document)
     loadAlbums(document)
   }
 
