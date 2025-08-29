@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Timestamp Versioning.
 
+## [2025.08.29-0413] - 2025-08-28
+
+### Fixed
+- A bug where the script would fail to initialize if the GPTK API was not available on `unsafeWindow` at the exact moment the script ran. The script now correctly relies only on the visibility of the `#gptk-button` as the signal for GPTK's readiness.
+
+### Changed
+- The E2E test (`tests/e2e.test.js`) has been enhanced to simulate a delay in the GPTK API's availability, proving that the fix above is robust.
+
+### Documentation
+- Updated `AGENTS.md` to formalize a two-phase "Pre-plan" and "Pre-commit" routine to improve process reliability.
+
 ## [2025.08.29-0226] - 2025-08-28
 
 ### Added

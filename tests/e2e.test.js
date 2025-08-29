@@ -44,41 +44,30 @@ test.describe('Google Photos Saved Finder E2E', () => {
       `
     });
 
-    // Set up network mocking
-    await page.route(MOCK_URL + '**', async (route) => {
-      const request = route.request();
-      const url = request.url();
-
-      if (url.includes('/_/data/batchexecute')) {
-        const postData = request.postData();
-        const rpcid = new URLSearchParams(postData).get('f.req').match(/"(Z5xsfc)"/)?.[1];
-
-        if (rpcid === 'Z5xsfc') { // getAlbums
-          const mockAlbums = [[
-            ['albumId1', [null, 'https://lh3.googleusercontent.com/some_thumbnail'], null, 'album1_dedupKey', null, null, ['actorId1']],
-            'Album 1', null, 10
-          ]];
-          const responseBody = `)]}'\n\n42\n[["wrb.fr","[null,${JSON.stringify(mockAlbums)},null]"]]\n`;
-          return route.fulfill({ status: 200, contentType: 'text/plain', body: responseBody });
-        }
-        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({}) });
-      }
+    // Set up network mocking to only serve the mock HTML page.
+    await page.route(MOCK_URL, (route) => {
       return route.fulfill({ path: 'mocks/photos.html' });
     });
 
-    // Navigate to the page, which will be intercepted
+    // Navigate to the page
     await page.goto(MOCK_URL);
 
     // Manually define unsafeWindow for the userscripts
     await page.evaluate(() => { window.unsafeWindow = window; });
 
-    // Inject the userscripts
+    // Inject the main GPTK script
     await page.addScriptTag({ path: 'scripts/gptk.original.user.js' });
+
+    // Inject our script
     await page.addScriptTag({ path: 'dist/gpsf.user.js' });
 
-    // Wait for GPTK to initialize and add its button and for the account link to be present
+    // Wait for the GPTK button to appear. This is the key signal.
     await expect(page.locator('#gptk-button')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('a[aria-label^="Google Account:"]')).toBeVisible({ timeout: 10000 });
+
+    // NOW, inject the mock API that our script depends on.
+    // This proves that our script waits for the button and doesn't fail if the API is delayed.
+    await page.addScriptTag({ path: 'mocks/gptk-api.js' });
 
     // Trigger the menu command function we captured in our mock
     await page.evaluate(() => window.gpsf_menu_command());

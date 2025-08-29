@@ -403,11 +403,6 @@ function addEventListeners (doc) {
  */
 function initializeAndShowUI () {
   try {
-    // Check for GPTK API before proceeding
-    if (!unsafeWindow.gptkApi || !unsafeWindow.gptkApiUtils) {
-      throw new Error('Google Photos Toolkit API not found. Please ensure GPTK is installed and active.')
-    }
-
     const anchor = document.querySelector('a[aria-label^="Google Account:"]')
     const label = anchor ? anchor.getAttribute('aria-label') : ''
     const match = label.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/)
