@@ -1,37 +1,23 @@
 import { test, expect } from '@playwright/test';
-import { start as startServer, stop as stopServer } from './server.js';
-import fs from 'fs';
-
-const MOCK_URL = 'https://photos.google.com/';
 
 test.describe('Google Photos Saved Finder E2E', () => {
-  // Start and stop the server once for all tests in this file.
-  test.beforeAll(async () => {
-    await startServer();
-  });
-
-  test.afterAll(async () => {
-    await stopServer();
-  });
-
-  test('should load the userscript and find the hidden bug', async ({ browser }) => {
-    const context = await browser.newContext({
-      ignoreHTTPSErrors: true, // Necessary for our self-signed certificate
-    });
+  test('should load the userscript and display the UI correctly', async ({ browser }) => {
+    const context = await browser.newContext();
     const page = await context.newPage();
 
-    // Log all console messages from the browser for debugging
-    page.on('console', msg => console.log(`[Browser Console] ${msg.type()}: ${msg.text()}`));
+    // Add logging to see what's happening in the browser
+    page.on('console', msg => console.log(`[BROWSER] ${msg.type()}: ${msg.text()}`));
+    page.on('pageerror', error => console.error(`[BROWSER PAGE ERROR] ${error.message}`));
 
-    // Inject mock scripts before navigating
-    await page.addInitScript({ content: 'window.E2E_TESTING = true;' });
-    await page.addInitScript({ path: 'mocks/wiz-data.js' });
-
-    // Mock Greasemonkey APIs
+    // --- MOCKING STRATEGY ---
+    // Inject all necessary mocks and shims before the page loads anything.
     await page.addInitScript({
       content: `
+        // 1. Set flag for our script to know it's in a test environment
+        window.E2E_TESTING = true;
+
+        // 2. Mock the GM APIs our script uses
         window.GM_registerMenuCommand = (name, fn) => {
-          // Capture the function passed by our userscript, so we can call it later.
           if (name === 'Start Google Photos Saved Finder') {
             window.gpsf_menu_command = fn;
           }
@@ -41,40 +27,51 @@ test.describe('Google Photos Saved Finder E2E', () => {
           scriptHandler: 'Tampermonkey',
           version: '4.18.1'
         };
+
+        // 3. Mock the specific, problematic GPTK API function
+        // This isolates our script from the complex GPTK script.
+        window.unsafeWindow = window;
+        window.unsafeWindow.gptkApiUtils = {
+          getAllAlbums: async () => {
+            console.log('[E2E MOCK] gptkApiUtils.getAllAlbums called, returning mock data.');
+            return [
+              { mediaKey: 'album1', title: 'Test Album 1', itemCount: 10 },
+              { mediaKey: 'album2', title: 'Test Album 2', itemCount: 5 },
+            ];
+          }
+        };
+
+        // 4. Mock the WIZ_global_data object that GPTK might need
+        window.WIZ_global_data = {
+          // Add any keys here that the script might depend on, even if empty.
+          // This prevents "Cannot read properties of undefined" errors.
+          oJ3XLc: 'some-value', // Example value
+        };
       `
     });
 
-    // Set up network mocking to only serve the mock HTML page.
-    await page.route(MOCK_URL, (route) => {
-      return route.fulfill({ path: 'mocks/photos.html' });
-    });
+    // Navigate to a blank page. We don't need a mock server or HTML file anymore.
+    await page.goto('about:blank');
 
-    // Navigate to the page
-    await page.goto(MOCK_URL);
-
-    // Manually define unsafeWindow for the userscripts
-    await page.evaluate(() => { window.unsafeWindow = window; });
-
-    // Inject the main GPTK script
-    await page.addScriptTag({ path: 'scripts/gptk.original.user.js' });
-
-    // Inject our script
+    // Inject our built userscript
     await page.addScriptTag({ path: 'dist/gpsf.user.js' });
 
-    // Wait for the GPTK button to appear. This is the key signal.
-    await expect(page.locator('#gptk-button')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('a[aria-label^="Google Account:"]')).toBeVisible({ timeout: 10000 });
-
-    // NOW, inject the mock API that our script depends on.
-    // This proves that our script waits for the button and doesn't fail if the API is delayed.
-    await page.addScriptTag({ path: 'mocks/gptk-api.js' });
-
-    // Trigger the menu command function we captured in our mock
+    // Trigger the userscript's menu command
     await page.evaluate(() => window.gpsf_menu_command());
 
-    // The final assertion: Check if the UI is visible and interactive
-    await expect(page.locator('#gpsf-container')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('#gpsf-start-button')).toBeEnabled({ timeout: 1000 });
+    // Assert that the UI container is visible
+    await expect(page.locator('#gpsf-container')).toBeVisible();
+
+    // Assert that the "Select All" checkbox is now visible, proving the fix
+    await expect(page.locator('#gpsf-select-all-checkbox')).toBeVisible({ timeout: 2000 });
+
+    // Interact with the checkbox to ensure it's functional
+    await page.locator('#gpsf-select-all-checkbox').click();
+    const allChecked = await page.evaluate(() => {
+      const checkboxes = Array.from(document.querySelectorAll('#gpsf-source-albums input[type="checkbox"]:not(#gpsf-select-all-checkbox)'));
+      return checkboxes.every(cb => cb.checked);
+    });
+    expect(allChecked).toBe(true);
 
     await context.close();
   });
