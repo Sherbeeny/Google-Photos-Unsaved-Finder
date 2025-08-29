@@ -95,41 +95,31 @@ function populateAlbumLists (albumList, doc) {
 
 /**
  * Fetches all albums using the GPTK API and populates the UI lists.
+ * This function is designed to be robust and not crash if the API is missing.
  * @param {Document} doc - The document object of the UI.
  */
 async function loadAlbums (doc) {
   log('Attempting to load albums via GPTK API...', doc)
   try {
-    // Defensively check if the GPTK API and the specific function exist.
-    if (typeof unsafeWindow?.gptkApiUtils?.getAllAlbums !== 'function') {
-      const errorMessage = 'Error: GPTK API not found. Is the script installed and running?'
-      console.error(`${SCRIPT_NAME}: ${errorMessage}`)
-      log(errorMessage, doc, 'error')
-      populateAlbumLists([], doc) // Ensure UI shows "No albums found"
-      return
-    }
-
+    // As per user instruction, call the API directly and let the catch block handle any TypeError.
     const fetchedAlbums = await unsafeWindow.gptkApiUtils.getAllAlbums()
 
-    // Defensively check if the result from the API is a usable array.
     if (Array.isArray(fetchedAlbums)) {
       albums = fetchedAlbums
       albums.sort((a, b) => a.title.localeCompare(b.title))
       populateAlbumLists(albums, doc)
       log(`${albums.length} albums loaded successfully.`, doc, 'success')
     } else {
-      // Handle cases where GPTK returns undefined, null, or something else.
       albums = []
-      populateAlbumLists(albums, doc) // This will show the "No albums found" message.
+      populateAlbumLists(albums, doc)
       const errorMessage = 'Error loading albums: The GPTK script did not return a valid album list.'
       console.error(`${SCRIPT_NAME}: ${errorMessage}`)
       log(errorMessage, doc, 'error')
     }
   } catch (error) {
-    const errorMessage = 'An unexpected error occurred while loading albums.'
-    console.error(`${SCRIPT_NAME}: ${errorMessage}`, error)
+    const errorMessage = `An unexpected error occurred while loading albums: ${error}`
+    console.error(`${SCRIPT_NAME}:`, error)
     log(errorMessage, doc, 'error')
-    // Also ensure we show "no albums" UI on unexpected errors.
     populateAlbumLists([], doc)
   }
 }
@@ -142,28 +132,27 @@ function hideUI () {
 }
 
 /**
- * Creates and shows the main UI. If the UI already exists, it just shows it.
+ * Creates and shows the main UI. This function is decoupled from data loading.
  * @param {string} email - The user's email address to display in the UI.
  */
 function showUI (email) {
   if (!uiContainer) {
     uiContainer = document.createElement('div')
     uiContainer.id = 'gpsf-container'
-    // Use the 'default' policy, which should exist now.
     const trustedHtml = (window.trustedTypes && trustedTypes.default)
       ? trustedTypes.default.createHTML(uiHtml)
       : uiHtml
     uiContainer.innerHTML = trustedHtml
     document.body.appendChild(uiContainer)
 
-    // Get element references
     startButton = document.getElementById('gpsf-start-button')
     cancelButton = document.getElementById('gpsf-cancel-button')
     progressBar = document.getElementById('gpsf-progress-bar')
 
-    // Add event listeners and load initial data
+    const sourceList = document.getElementById('gpsf-source-albums')
+    sourceList.innerHTML = '<li>Loading albums...</li>'
+
     addEventListeners(document)
-    loadAlbums(document)
   }
 
   uiContainer.style.display = 'block'
@@ -171,6 +160,8 @@ function showUI (email) {
   if (subtitleEl) {
     subtitleEl.textContent = `For account: ${email}`
   }
+
+  setTimeout(() => loadAlbums(document), 100)
 }
 
 /**
@@ -236,7 +227,7 @@ async function getSourceMediaItems (doc) {
   }
 
   const allItems = []
-  const itemKeys = new Set() // Use a Set to efficiently track unique items
+  const itemKeys = new Set()
   updateFeedback('Fetching media items...', doc)
 
   for (const checkbox of sourceCheckboxes) {
@@ -284,7 +275,7 @@ async function processBatches (items, filterType, doc, batchSize) {
       scannedCount += batch.length
 
       results.forEach(itemInfo => {
-        if (!itemInfo) return // Skip if item info couldn't be fetched
+        if (!itemInfo) return
         const isSaved = itemInfo.savedToYourPhotos
         if (filterType === 'any' || (filterType === 'saved' && isSaved) || (filterType === 'not-saved' && !isSaved)) {
           matchedItems.push(itemInfo)
@@ -292,7 +283,6 @@ async function processBatches (items, filterType, doc, batchSize) {
       })
     } catch (error) {
       log(`Error processing batch: ${error.message}`, doc, 'error')
-      // Decide if we should continue or stop on batch error. For now, we continue.
     }
     log(`Batch processed. Scanned: ${scannedCount}/${totalCount}. Matches found: ${matchedItems.length}.`, doc)
   }
@@ -313,7 +303,6 @@ function renderResults (items, doc) {
   }
   items.forEach(item => {
     const img = doc.createElement('img')
-    // Use a smaller thumbnail URL for performance
     img.src = `${item.url}=w100-h100-c`
     img.title = item.filename
     resultsContainer.appendChild(img)
@@ -341,10 +330,9 @@ async function addToAlbum (matchedItems, doc) {
       updateFeedback('Creating new album...', doc)
       destinationAlbumId = await unsafeWindow.gptkApi.createAlbum(newAlbumName)
       log(`Album "${newAlbumName}" created successfully.`, doc, 'success')
-      // TODO: Refresh album lists after creation
     }
 
-    if (!destinationAlbumId) return // Should not happen if logic is correct
+    if (!destinationAlbumId) return
 
     log(`Adding ${matchedItems.length} items to destination album...`, doc)
     updateFeedback(`Adding ${matchedItems.length} items...`, doc)
@@ -387,7 +375,7 @@ async function startProcess (doc) {
     log('Process cancelled by user.', doc, 'info')
   } else if (matchedItems && matchedItems.length > 0) {
     log(`Processing complete. Found ${matchedItems.length} matches.`, doc, 'success')
-    renderResults(matchedItems, doc) // Show thumbnails of what was found
+    renderResults(matchedItems, doc)
     await addToAlbum(matchedItems, doc)
   } else {
     log('Processing complete. No matches found.', doc, 'info')
@@ -423,7 +411,7 @@ function addEventListeners (doc) {
 }
 
 /**
- * Initializes and shows the UI. Assumes GPTK is ready.
+ * Initializes and shows the UI.
  */
 function initializeAndShowUI () {
   try {
@@ -432,7 +420,6 @@ function initializeAndShowUI () {
     const match = label.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/)
     const email = match ? match[1] : 'Unknown Account'
 
-    // Reset GPTK's state in case it was left running
     if (unsafeWindow.gptkCore) unsafeWindow.gptkCore.isProcessRunning = false
 
     showUI(email)
@@ -453,14 +440,11 @@ function initializeAndShowUI () {
 
   setupTrustedTypesPolicy()
 
-  // Check if we are running in a real Tampermonkey environment
   if (typeof GM_info !== 'undefined' && GM_info.scriptHandler === 'Tampermonkey') {
     GM_registerMenuCommand('Start Google Photos Saved Finder', initializeAndShowUI)
     console.log(`${SCRIPT_NAME}: Menu command registered.`)
   }
 
-  // --- E2E Testing ---
-  // Expose the initialization function for Playwright to call
   if (window.E2E_TESTING) {
     if (!window.unsafeWindow) window.unsafeWindow = window
     window.unsafeWindow.gpsf = { initializeAndShowUI }
