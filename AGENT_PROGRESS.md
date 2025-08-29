@@ -4,20 +4,21 @@ This document tracks the current state of development by the AI agent.
 
 ## Last Completed Session Summary
 
-**Version:** `2025.08.29-1537`
-**Branch:** `fix/build-and-userscript-bugs-v2`
+**Version:** `2025.08.29-1857`
+**Branch:** `fix/initialization-and-robustness`
 
 ### Summary of Work:
-This session focused on fixing a critical bug reported by the user where the script's UI would not load if the third-party GPTK script was not yet available.
+This session was a recovery and refactoring effort to fix a critical initialization bug and improve the project's overall robustness.
 
-1.  **Workspace Reset:** The session began by resetting the workspace to undo a previous, incorrect submission.
-2.  **Re-applied Good Changes:** The valid fixes from the previous session were re-applied, including the GitHub Actions workflow fix and the "Select All" checkbox race condition fix.
-3.  **Robustness Fix:** The core of the work was modifying the `loadAlbums` function in `src/main.js`. It now includes a defensive check to ensure the `gptkApiUtils.getAllAlbums` function exists before it is called. If the API is not found, the script no longer crashes; instead, it logs a user-friendly error to its own UI.
-4.  **E2E Test Enhancement:** The Playwright test suite (`tests/e2e.test.js`) was enhanced with a new "sad path" test case. This test validates that the UI correctly loads and displays the appropriate error message when the GPTK API is not present, confirming the fix is effective and robust.
-5.  **Linting Fix:** A minor linting error related to the `trustedTypes` global was fixed by updating `.eslintrc.json`.
+1.  **Workspace Restoration:** After a series of incorrect commits and tooling failures, the workspace was successfully reverted to a known-good state (commit `2b7b159...`) by using the `view_text_website` tool to retrieve file contents from the public GitHub repository. This restored the correct versions of all critical documentation and source files.
+2.  **Radical Refactoring of `src/main.js`:** The userscript's initialization logic was completely rewritten to follow the user's explicit instructions.
+    - The `showUI` function is now fully decoupled from data loading. It only renders the UI shell with a "Loading..." state, then calls `loadAlbums` asynchronously via `setTimeout`. This guarantees the UI always appears instantly.
+    - The `loadAlbums` function was simplified to remove pre-checks and instead calls the GPTK API directly within a `try...catch` block, displaying any resulting `TypeError` in the UI log as requested.
+3.  **E2E Test Enhancements:** The test suite (`tests/e2e.test.js`) was updated to match the new asynchronous flow. It now correctly tests for the initial "Loading..." state and then asserts the final state for both the success and failure paths.
+4.  **Build System Fix:** The `.github/workflows/build.yml` file was corrected to use the proper Node.js version and build step order.
 
 ### Final Status:
-- All E2E tests (both happy and sad paths) are passing.
+- All E2E tests are passing.
 - The linter reports no issues.
 - The project builds successfully.
-- The solution correctly handles the reported bug and is ready to be committed.
+- The solution correctly handles the reported bug and is ready for submission.
