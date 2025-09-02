@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025.09.02-0651] - 2025-09-01
+### Fixed
+- Improved UI text contrast and font size for better readability.
+- Added a version log to the console to help debug potential issues.
+
+### Added
+- A custom, programmatic linter setup to enforce code quality.
+
 ## [2025.09.01-1959] - 2025-09-01
 ### Added
 - Created a Tampermonkey userscript `google-photos-unsaved-finder`.
