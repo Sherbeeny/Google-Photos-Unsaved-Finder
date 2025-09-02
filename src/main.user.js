@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Unsaved Finder
 // @namespace    http://tampermonkey.net/
-// @version      2025.09.02-0832
+// @version      2025.09.02-2113
 // @description  Detects if the Google-Photos-Toolkit is available and displays a message.
 // @author       Sherbeeny (via Jules the AI Agent)
 // @match        https://photos.google.com/*
@@ -36,7 +36,7 @@
         return container;
     }
     function start() {
-        GM_addStyle(`.gpf-window { position: fixed; top: 20%; left: 50%; transform: translateX(-50%); background-color: white; border: 1px solid #ccc; padding: 2rem; z-index: 99999; text-align: center; } .gpf-window div { font-size: 1.5rem; margin-bottom: 1rem; }`);
+        GM_addStyle('.gpf-window { position: fixed; top: 20%; left: 50%; transform: translateX(-50%); background-color: white; border: 1px solid #ccc; padding: 2rem; z-index: 99999; text-align: center; } .gpf-window div { font-size: 1.5rem; margin-bottom: 1rem; }');
         const ui = createUI();
         ui.classList.add('gpf-window');
         const closeButton = ui.querySelector('button');
@@ -46,5 +46,10 @@
     GM_registerMenuCommand('Start Google Photos Unsaved Finder', start);
     if (typeof module !== 'undefined' && module.exports) {
         module.exports = { createUI, isGptkApiAvailable };
+    }
+
+    // Expose functions for Jest testing environment
+    if (typeof process !== 'undefined' && process.env.JEST_WORKER_ID) {
+        global.testingExports = { createUI, isGptkApiAvailable };
     }
 })();

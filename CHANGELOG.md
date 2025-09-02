@@ -1,5 +1,18 @@
 # Changelog
 
+## [2025.09.02-2113] - 2025-09-02
+### Changed
+- Refactored the entire testing and linting toolchain from custom, manual scripts to a standard setup using Jest and ESLint. The project now uses modern, industry-standard quality assurance practices.
+
+### Removed
+- The custom test runner (`run_my_tests.js`) and linter (`run_linter.js`) scripts have been removed.
+- The vendored `chai.js` dependency is no longer needed and has been removed.
+
+### Added
+- A `test` script in `package.json` that runs Jest.
+- A `lint` script in `package.json` that runs ESLint.
+- Full Jest configuration (`jest.config.cjs`) and ESLint configuration (`eslint.config.js`) to support ES Modules.
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),

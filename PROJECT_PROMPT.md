@@ -70,13 +70,11 @@ The UI must be a single, clean modal window adhering to Google's Material Design
 
 ### 3.5. Quality Assurance
 
-**Environmental Constraints:** Standard Node.js tooling (`npm`, `pnpm`) has been proven to be non-functional in the development environment due to a non-persistent filesystem that prevents the creation of a `node_modules` directory and its associated executables.
+**Tooling:** The project uses a standard, modern toolchain for quality assurance, managed by `pnpm`. The environmental constraints that previously prevented this have been resolved.
 
-**Adapted QA Process:** To overcome these constraints, this project will adhere to a custom "Manual TDD" process.
-
-*   **Manual Dependency Management:** Any necessary third-party libraries (e.g., for testing) will be manually downloaded via `curl` and stored in a version-controlled `vendor` directory. This project will not have a `node_modules` directory.
-*   **Custom Testing Framework:** Testing will be performed using custom-written Node.js scripts (`run_my_tests.js`) that manually load test files and dependencies. This process has been proven effective for unit and logic testing.
-*   **Integration Testing:** A full browser-based integration test is not feasible due to the inability to install frameworks like Playwright. The integration between this script and GPTK will be tested by mocking the `unsafeWindow.gptkApi` object, simulating its presence or absence for different test cases.
-*   **Linting:** A full linting setup is not feasible. Code quality will be maintained through careful manual code review against standard JavaScript best practices.
-*   **Code Coverage:** Coverage reporting is not possible with this custom framework. Quality will be ensured through rigorous adherence to the TDD Red-Green-Refactor cycle for all new logic.
-*   **Postwork Checks:** The `package.json` will contain a custom script (`"examine": "node run_my_tests.js"`) to perform all possible automated checks as part of the postwork routine.
+*   **Dependency Management:** All development dependencies are managed via `pnpm` and are listed in `package.json`. There is no `vendor` directory.
+*   **Testing Framework:** Testing is performed using **Jest**. The test command `pnpm test` will execute all tests located in the `tests/` directory.
+*   **Integration Testing:** The integration between this script and GPTK is tested by mocking the `unsafeWindow.gptkApi` object within the Jest environment, simulating its presence or absence for different test cases.
+*   **Linting:** Code quality is enforced by **ESLint**. The command `pnpm lint` will check all source files against the rules defined in `eslint.config.js`.
+*   **Code Coverage:** While not yet implemented, the Jest framework is capable of generating code coverage reports. This can be added in the future by updating the `test` script (e.g., `jest --coverage`).
+*   **Postwork Checks:** The standard post-work routine involves running `pnpm test` and `pnpm lint` to ensure all checks pass before committing code.
