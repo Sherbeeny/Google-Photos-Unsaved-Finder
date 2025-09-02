@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025.09.02-0742] - 2025-09-01
+### Added
+- Feature to detect if the "Google-Photos-Toolkit" (GPTK) API is available.
+- The UI now conditionally displays "GPTK API is available!" or "GPTK API is not available!".
+
 ## [2025.09.02-0728] - 2025-09-01
 ### Fixed
 - Prevented the script from executing multiple times on a page by adding the `@noframes` directive.

@@ -1,16 +1,17 @@
 # Agent Progress
 
-**Task:** Fix userscript bugs (double execution, hardcoded version).
-**Version:** `2025.09.02-0728`
+**Task:** Implement GPTK API detection feature.
+**Version:** `2025.09.02-0742`
 **Status:** Complete
 
 ## Work Completed
-- Fixed a bug where the script would execute twice by adding the `@noframes` directive.
-- Refactored the version logging to be dynamic by using the `GM_info` API.
-- Updated the custom test runner environment to mock `GM_info`.
-- Followed the full prework -> work -> postwork process for this change, including versioning and documentation updates.
-- Verified all changes with the custom test runner.
-- This task is now complete and submitted. The userscript is now more robust.
+- Researched the external Google-Photos-Toolkit userscript to determine its API signature.
+- Updated the custom TDD framework to support testing with and without the mock GPTK API present.
+- Wrote failing tests to check for conditional UI text based on API availability.
+- Implemented the API detection logic and updated the UI to show the correct message.
+- Verified the implementation with passing tests and a manual code review.
+- Followed the full prework -> work -> postwork process for this change.
+- This task is now complete and submitted. The userscript is now more intelligent.
 
 ---
 *Previous session logs have been archived.*
