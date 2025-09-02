@@ -7,5 +7,6 @@ const tests = {
     'should have a valid @description': (meta) => { expect(meta.description).to.be.a('string').and.not.be.empty; },
     'should have a valid @author': (meta) => { expect(meta.author).to.be.a('string').and.not.be.empty; },
     'should have a valid @match': (meta) => { expect(meta.match).to.be.a('string').and.not.be.empty; },
+    'should have a valid @grant for unsafeWindow': (meta) => { expect(meta.grant).to.include('unsafeWindow'); },
 };
 module.exports = { tests };

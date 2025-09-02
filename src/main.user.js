@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Unsaved Finder
 // @namespace    http://tampermonkey.net/
-// @version      2025.09.02-0757
+// @version      2025.09.02-0832
 // @description  Detects if the Google-Photos-Toolkit is available and displays a message.
 // @author       Sherbeeny (via Jules the AI Agent)
 // @match        https://photos.google.com/*
@@ -9,18 +9,26 @@
 // @grant        GM_registerMenuCommand
 // @grant        GM_addStyle
 // @grant        GM_info
+// @grant        unsafeWindow
 // ==/UserScript==
 (function() {
     'use strict';
     if (typeof GM_addStyle === 'undefined') { global.GM_addStyle = () => {}; }
     if (typeof GM_registerMenuCommand === 'undefined') { global.GM_registerMenuCommand = () => {}; }
     if (typeof GM_info === 'undefined') { global.GM_info = { script: { version: 'test-version' } }; }
+    if (typeof unsafeWindow === 'undefined') { global.unsafeWindow = {}; }
     console.log(`GPUF: Script version ${GM_info.script.version}`);
-    function isGptkApiAvailable() { return typeof window.gptkApi !== 'undefined' && window.gptkApi !== null; }
+    function isGptkApiAvailable() {
+        return typeof unsafeWindow.gptkApi !== 'undefined' && unsafeWindow.gptkApi !== null;
+    }
     function createUI() {
         const container = document.createElement('div');
         const content = document.createElement('div');
-        if (isGptkApiAvailable()) { content.textContent = 'GPTK API is available!'; } else { content.textContent = 'GPTK API is not available!'; }
+        if (isGptkApiAvailable()) {
+            content.textContent = 'GPTK API is available!';
+        } else {
+            content.textContent = 'GPTK API is not available!';
+        }
         container.appendChild(content);
         const closeButton = document.createElement('button');
         closeButton.textContent = 'Close';
@@ -36,5 +44,7 @@
         document.body.appendChild(ui);
     }
     GM_registerMenuCommand('Start Google Photos Unsaved Finder', start);
-    if (typeof module !== 'undefined' && module.exports) { module.exports = { createUI, isGptkApiAvailable }; }
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = { createUI, isGptkApiAvailable };
+    }
 })();

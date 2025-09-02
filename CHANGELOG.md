@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025.09.02-0832] - 2025-09-01
+### Fixed
+- Corrected the GPTK API detection logic to use `unsafeWindow`, fixing a bug where the API was not detected due to the userscript sandbox.
+
+### Changed
+- The testing framework was enhanced to correctly simulate the `unsafeWindow` object, allowing the bug to be caught and verified.
+
 ## [2025.09.02-0757] - 2025-09-01
 ### Fixed
 - Restored missing `@match`, `@author`, and `@description` metadata to the userscript header, fixing a major regression where the script would not install or run.

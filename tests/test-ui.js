@@ -7,17 +7,16 @@ const createMockDocument = () => {
 };
 const tests = {
     'when GPTK API is NOT available, should show "not available" message': () => {
-        global.window = {}; global.document = createMockDocument(); delete global.window.gptkApi;
+        global.window = {}; global.unsafeWindow = {}; global.document = createMockDocument();
         const ui = createUI();
         const content = ui.querySelector('div');
         expect(content.textContent).to.equal('GPTK API is not available!');
     },
     'when GPTK API IS available, should show "available" message': () => {
-        global.window = {}; global.document = createMockDocument(); global.window.gptkApi = {};
+        global.window = {}; global.unsafeWindow = { gptkApi: {} }; global.document = createMockDocument();
         const ui = createUI();
         const content = ui.querySelector('div');
         expect(content.textContent).to.equal('GPTK API is available!');
-        delete global.window.gptkApi;
     }
 };
 module.exports = { tests };
