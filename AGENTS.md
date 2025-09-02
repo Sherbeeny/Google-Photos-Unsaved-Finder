@@ -9,6 +9,17 @@
 
 ---
 
+## HIGH-LEVEL AGENT WORKFLOW
+All tasks must follow this fundamental, three-phase process. The routines listed below are not steps *within* a plan, but actions that *wrap around* the plan's execution.
+
+1.  **Prework Routine:** Before beginning execution of a new plan, the agent **MUST** perform the pre-plan steps. This includes generating a new version for the work and updating `AGENT_PROGRESS.md` with the version and the full execution plan. See the "PRE-PLAN ROUTINE" section for details.
+
+2.  **Work:** The agent executes the steps of the approved plan. Each step should only be marked complete after the work has been verified.
+
+3.  **Postwork Routine:** After all plan steps are complete, the agent **MUST** perform the pre-commit steps. This includes running all final checks (testing, linting), updating all documentation (`CHANGELOG.md`, `AGENT_PROGRESS.md`), and refreshing context before submitting the work. See the "PRE-COMMIT ROUTINE" section for details.
+
+---
+
 ## ACCURACY, VERIFICATION, AND DISCLAIMERS
 - Always verify library/tool behavior against **official documentation** or via short targeted tests. If verification cannot be performed, include one of these phrases verbatim:
   - "I cannot verify this."

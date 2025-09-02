@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025.09.02-0717] - 2025-09-01
+### Changed
+- Updated `AGENTS.md` to use clearer workflow terminology ("prework", "work", "postwork").
+
+## [2025.09.02-0709] - 2025-09-01
+### Changed
+- Updated `AGENTS.md` to explicitly clarify the high-level agent workflow (Pre-Plan -> Execute -> Pre-Commit).
+
 ## [2025.09.02-0651] - 2025-09-01
 ### Fixed
 - Improved UI text contrast and font size for better readability.

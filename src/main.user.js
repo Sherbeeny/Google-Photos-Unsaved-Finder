@@ -7,12 +7,15 @@
 // @match        https://photos.google.com/*
 // @grant        GM_registerMenuCommand
 // @grant        GM_addStyle
+// @grant        GM_info
+// @noframes
 // ==/UserScript==
 (function() {
     'use strict';
-    console.log('GPUF: Script version 2025.09.02-0651');
+    console.log(`GPUF: Script version ${GM_info.script.version}`);
     if (typeof GM_addStyle === 'undefined') { global.GM_addStyle = () => {}; }
     if (typeof GM_registerMenuCommand === 'undefined') { global.GM_registerMenuCommand = () => {}; }
+    if (typeof GM_info === 'undefined') { global.GM_info = { script: { version: 'test-version' } }; }
     function createUI() {
         const container = document.createElement('div');
         const content = document.createElement('div');
