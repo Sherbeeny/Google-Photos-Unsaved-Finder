@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Unsaved Finder
 // @namespace    http://tampermonkey.net/
-// @version      2025.09.02-2113
+// @version      2025.09.02-2148
 // @description  Detects if the Google-Photos-Toolkit is available and displays a message.
 // @author       Sherbeeny (via Jules the AI Agent)
 // @match        https://photos.google.com/*
@@ -50,6 +50,10 @@
 
     // Expose functions for Jest testing environment
     if (typeof process !== 'undefined' && process.env.JEST_WORKER_ID) {
-        global.testingExports = { createUI, isGptkApiAvailable };
+        global.testingExports = {
+            createUI,
+            isGptkApiAvailable,
+            start
+        };
     }
 })();
