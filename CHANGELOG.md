@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025.09.02-0728] - 2025-09-01
+### Fixed
+- Prevented the script from executing multiple times on a page by adding the `@noframes` directive.
+- The version log now reads the version dynamically from the script's metadata (`GM_info`) instead of being hardcoded.
+
 ## [2025.09.02-0717] - 2025-09-01
 ### Changed
 - Updated `AGENTS.md` to use clearer workflow terminology ("prework", "work", "postwork").
