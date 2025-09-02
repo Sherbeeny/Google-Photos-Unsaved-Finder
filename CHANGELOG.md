@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025.09.02-0908] - 2025-09-01
+### Added
+- Created `PROJECT_PROMPT.md` with the full project requirements.
+
+### Changed
+- Updated the "Quality Assurance" section of the project prompt to document the environment's challenges and the adapted manual TDD process.
+
 ## [2025.09.02-0832] - 2025-09-01
 ### Fixed
 - Corrected the GPTK API detection logic to use `unsafeWindow`, fixing a bug where the API was not detected due to the userscript sandbox.
