@@ -1,5 +1,18 @@
 const fs = require('fs');
 const path = require('path');
+const getMetadata = () => {
+    const scriptPath = path.resolve(__dirname, 'src', 'main.user.js');
+    const scriptContent = fs.readFileSync(scriptPath, 'utf8');
+    const header = scriptContent.match(/\/\/ ==UserScript==([\s\S]*?)\/\/ ==\/UserScript==/);
+    if (!header) return {};
+    const meta = {};
+    const lines = header[1].match(/@\S+\s+.*/g) || [];
+    lines.forEach(line => {
+        const [, key, value] = line.match(/@(\S+)\s+(.*)/);
+        meta[key] = value.trim();
+    });
+    return meta;
+};
 console.log('--- Custom Test Runner ---');
 const testDir = path.resolve(__dirname, 'tests');
 let testsPassed = 0;
@@ -10,16 +23,16 @@ fs.readdirSync(testDir).filter(file => file.endsWith('.js')).forEach(file => {
     const testSuitePath = path.join(testDir, file);
     try {
         const { tests } = require(testSuitePath);
+        const metadata = file.includes('metadata') ? getMetadata() : undefined;
         for (const testName in tests) {
             totalTests++;
             try {
-                tests[testName]();
+                tests[testName](metadata);
                 console.log(`  ✔ PASS: ${testName}`);
                 testsPassed++;
             } catch (error) {
                 console.error(`  ✖ FAIL: ${testName}`);
-                const indentedError = error.stack.replace(/^/gm, '    ');
-                console.error(indentedError);
+                console.error(error.stack.replace(/^/gm, '    '));
                 testsFailed++;
             }
         }

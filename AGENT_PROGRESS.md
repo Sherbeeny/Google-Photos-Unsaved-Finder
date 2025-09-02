@@ -1,17 +1,16 @@
 # Agent Progress
 
-**Task:** Implement GPTK API detection feature.
-**Version:** `2025.09.02-0742`
+**Task:** Fix metadata regression and enhance testing framework.
+**Version:** `2025.09.02-0757`
 **Status:** Complete
 
 ## Work Completed
-- Researched the external Google-Photos-Toolkit userscript to determine its API signature.
-- Updated the custom TDD framework to support testing with and without the mock GPTK API present.
-- Wrote failing tests to check for conditional UI text based on API availability.
-- Implemented the API detection logic and updated the UI to show the correct message.
-- Verified the implementation with passing tests and a manual code review.
-- Followed the full prework -> work -> postwork process for this change.
-- This task is now complete and submitted. The userscript is now more intelligent.
+- In response to a major regression, enhanced the custom testing framework with a new test suite (`test-metadata.js`) that validates the userscript's header.
+- Established a new "Red" state with this failing test.
+- Fixed the regression by restoring the missing `@match`, `@author`, and `@description` fields to the `src/main.user.js` header.
+- Verified the fix by running the full, enhanced test suite and ensuring all tests passed.
+- Followed the full prework -> work -> postwork process for this fix.
+- This task is now complete and submitted. The testing process is now more robust against future regressions.
 
 ---
 *Previous session logs have been archived.*

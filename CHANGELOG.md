@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025.09.02-0757] - 2025-09-01
+### Fixed
+- Restored missing `@match`, `@author`, and `@description` metadata to the userscript header, fixing a major regression where the script would not install or run.
+
+### Added
+- A new test suite (`test-metadata.js`) that specifically validates the userscript header to prevent metadata regressions in the future.
+
 ## [2025.09.02-0742] - 2025-09-01
 ### Added
 - Feature to detect if the "Google-Photos-Toolkit" (GPTK) API is available.
