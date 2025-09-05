@@ -136,6 +136,18 @@ describe('UI API Handling', () => {
         expect(startButton.disabled).toBe(false);
     });
 
+    test('should log an error to the console if gptkApi is not available', () => {
+        // Acceptance criteria: Critical errors must be logged to the browser console.
+        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        unsafeWindow.gptkApi = undefined;
+
+        start();
+
+        expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Google Photos Toolkit (GPTK) not found'));
+
+        consoleErrorSpy.mockRestore();
+    });
+
     test('should toggle Start/Stop button visibility during processing', () => {
         // Acceptance criteria: The user should see a "Stop" button only during processing.
         unsafeWindow.gptkApi = {
@@ -152,5 +164,23 @@ describe('UI API Handling', () => {
 
         expect(startButton.style.display).toBe('none');
         expect(stopButton.style.display).not.toBe('none');
+    });
+
+    test('should not crash and should show an error if getAlbums rejects', async () => {
+        // Acceptance criteria: An API failure during album load should not crash the script.
+        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        unsafeWindow.gptkApi = {
+            getAlbums: jest.fn().mockRejectedValue(new Error('Network Error')),
+        };
+
+        start();
+        // Wait for the async rejection to be processed
+        await new Promise(resolve => process.nextTick(resolve));
+
+        const logWindow = document.querySelector('.gpf-log-window');
+        expect(logWindow.textContent).toContain('Error loading albums');
+        expect(consoleErrorSpy).toHaveBeenCalledWith('GPUF: Error loading albums', expect.any(Error));
+
+        consoleErrorSpy.mockRestore();
     });
 });

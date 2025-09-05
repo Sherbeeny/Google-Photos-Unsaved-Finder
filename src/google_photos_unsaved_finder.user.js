@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Unsaved Finder
 // @namespace    http://tampermonkey.net/
-// @version      2025.09.05-2236
+// @version      2025.09.05-2249
 // @description  A userscript to find unsaved photos in Google Photos albums.
 // @author       Sherbeeny (via Jules the AI Agent)
 // @match        https://photos.google.com/*
@@ -41,6 +41,35 @@
         element.innerHTML = policy.createHTML(htmlString);
     }
 
+    // Centralized logging function
+    let logHistory = '';
+    function log(message, level = 'info', ...args) {
+        const logWindow = document.querySelector('.gpf-log-window');
+        const timestamp = new Date().toLocaleTimeString();
+        const logMessage = `${timestamp}: ${message}`;
+
+        if (logWindow) {
+            logHistory += logMessage + '<br>';
+            setSafeHTML(logWindow, logHistory);
+            logWindow.scrollTop = logWindow.scrollHeight; // Auto-scroll
+        }
+
+        if (level === 'error') {
+            console.error(`GPUF: ${message}`, ...args);
+        } else {
+            console.log(`GPUF: ${message}`, ...args);
+        }
+    }
+
+    function clearLog() {
+        logHistory = '';
+        const logWindow = document.querySelector('.gpf-log-window');
+        if (logWindow) {
+            setSafeHTML(logWindow, '');
+        }
+    }
+
+
     function isGptkApiAvailable() {
         return typeof unsafeWindow.gptkApi !== 'undefined' && unsafeWindow.gptkApi !== null;
     }
@@ -48,34 +77,30 @@
     async function startProcessing(ui) {
         const startButton = ui.querySelector('.gpf-start-button');
         const stopButton = ui.querySelector('.gpf-stop-button');
-        const logWindow = ui.querySelector('.gpf-log-window');
         const sourceSelect = ui.querySelector('.gpf-source-album-select');
         const filter = ui.querySelector('input[name="filter"]:checked').value;
         const batchSize = parseInt(ui.querySelector('.gpf-batch-size-input').value, 10);
 
         startButton.style.display = 'none';
         stopButton.style.display = 'inline-block';
+        clearLog();
 
         const selectedAlbumId = sourceSelect.value;
         if (!selectedAlbumId) {
-            setSafeHTML(logWindow, 'Error: No source album selected.');
+            log('Error: No source album selected.', 'error');
             return;
         }
 
-        let logHtml = 'Fetching media items...';
-        setSafeHTML(logWindow, logHtml);
+        log('Fetching media items...');
         const mediaItems = await unsafeWindow.gptkApi.getAlbumMediaItems(selectedAlbumId);
-
-        logHtml += `<br>Found ${mediaItems.length} total items.`;
-        setSafeHTML(logWindow, logHtml);
+        log(`Found ${mediaItems.length} total items.`);
 
         const matchedItems = [];
         const numBatches = Math.ceil(mediaItems.length / batchSize);
 
         for (let i = 0; i < numBatches; i++) {
             const batch = mediaItems.slice(i * batchSize, (i + 1) * batchSize);
-            logHtml += `<br>Processing batch ${i + 1} of ${numBatches}...`;
-            setSafeHTML(logWindow, logHtml);
+            log(`Processing batch ${i + 1} of ${numBatches}...`);
 
             const promises = batch.map(item => unsafeWindow.gptkApi.getItemInfo(item.id));
             const itemInfos = await Promise.all(promises);
@@ -92,8 +117,7 @@
             });
         }
 
-        logHtml += `<br>Scan complete. Found ${matchedItems.length} matching items.`;
-        setSafeHTML(logWindow, logHtml);
+        log(`Scan complete. Found ${matchedItems.length} matching items.`);
 
         startButton.style.display = 'inline-block';
         stopButton.style.display = 'none';
@@ -139,7 +163,7 @@
             });
 
         } catch (error) {
-            console.error('GPUF: Error loading albums', error);
+            log('Error loading albums', 'error', error);
             setSafeHTML(sourceSelect, '<option>Error loading albums</option>');
             setSafeHTML(destSelect, '<option>Error loading albums</option>');
         } finally {
@@ -152,7 +176,7 @@
         const container = document.createElement('div');
         container.className = 'gpf-window';
         setSafeHTML(container, `
-            <button class="gpf-close-x-button" style="position: absolute; top: 10px; right: 10px; border: none; background: transparent; font-size: 1.5rem; cursor: pointer;">X</button>
+            <button class="gpf-close-x-button" style="position: absolute; top: 10px; right: 10px; border: none; background: transparent; font-size: 1.5rem; cursor: pointer; color: #5f6368;">X</button>
             <h2>Google Photos Unsaved Finder</h2>
             <div class="gpf-section-source-albums">
                 <label>Source Album(s):</label>
@@ -179,18 +203,26 @@
                 <button class="gpf-stop-button" style="display: none;">Stop</button>
             </div>
             <div class="gpf-feedback-area">
-                <div class="gpf-log-window" style="height: 100px; overflow-y: scroll; border: 1px solid #ccc; padding: 5px; text-align: left; font-size: 0.8rem; background: #f9f9f9;"></div>
+                <div class="gpf-log-window"></div>
             </div>
         `);
         return container;
     }
 
     function start() {
-        GM_addStyle('.gpf-window { position: fixed; top: 10%; left: 50%; transform: translateX(-50%); background-color: white; border: 1px solid #ccc; padding: 1rem 2rem; z-index: 99999; width: 500px; } .gpf-window h2 { margin-top: 0; text-align: center; } .gpf-window div { margin-bottom: 1rem; } .gpf-window label { display: block; margin-bottom: .5rem; font-weight: bold; } .gpf-window select { width: 100%; } .gpf-radio-group { display: flex; gap: 1rem; } .gpf-radio-group label { font-weight: normal; }');
+        GM_addStyle(`
+            .gpf-window { position: fixed; top: 10%; left: 50%; transform: translateX(-50%); background-color: #fff; color: #202124; border: 1px solid #dadce0; border-radius: 8px; padding: 1rem 2rem; z-index: 99999; width: 500px; box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
+            .gpf-window h2 { margin-top: 0; text-align: center; color: #202124; }
+            .gpf-window div { margin-bottom: 1rem; }
+            .gpf-window label { display: block; margin-bottom: .5rem; font-weight: 500; color: #3c4043; }
+            .gpf-window select, .gpf-window input { width: 100%; padding: 8px; border: 1px solid #dadce0; border-radius: 4px; }
+            .gpf-radio-group { display: flex; gap: 1rem; }
+            .gpf-radio-group label { font-weight: normal; }
+            .gpf-log-window { height: 100px; overflow-y: scroll; border: 1px solid #dadce0; padding: 8px; text-align: left; font-size: 0.8rem; background: #f8f9fa; color: #3c4043; }
+        `);
         const ui = createUI();
         const closeButton = ui.querySelector('.gpf-close-x-button');
         const startButton = ui.querySelector('.gpf-start-button');
-        const logWindow = ui.querySelector('.gpf-log-window');
         const sourceSelect = ui.querySelector('.gpf-source-album-select');
         const destSelect = ui.querySelector('.gpf-dest-album-select');
 
@@ -200,9 +232,13 @@
 
         if (!isGptkApiAvailable()) {
             startButton.disabled = true;
-            logWindow.textContent = 'Error: Google Photos Toolkit (GPTK) not found.';
+            log('Error: Google Photos Toolkit (GPTK) not found.', 'error');
         } else {
-            loadAlbumData(sourceSelect, destSelect);
+            try {
+                loadAlbumData(sourceSelect, destSelect);
+            } catch(e) {
+                log('A critical error occurred during startup.', 'error', e);
+            }
         }
     }
 

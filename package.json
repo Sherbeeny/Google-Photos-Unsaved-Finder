@@ -1,6 +1,6 @@
 {
   "name": "google-photos-unsaved-finder",
-  "version": "2025.09.05-2236",
+  "version": "2025.09.05-2249",
   "description": "A userscript to find unsaved photos in Google Photos albums.",
   "main": "src/google_photos_unsaved_finder.user.js",
   "scripts": {
