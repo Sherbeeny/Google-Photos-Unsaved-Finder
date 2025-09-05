@@ -1,5 +1,10 @@
 # Changelog
 
+## [2025.09.05-2236] - 2025-09-05
+### Changed
+- **Process:** Updated `AGENTS.md` to clarify that each distinct body of work requires a new version and a full `prework -> work -> postwork` cycle. Also mandated that all plan steps be prefixed with their phase (`prework:`, `work:`, `postwork:`).
+- **Versioning:** Corrected the version timestamp for the previous commit to be up-to-date, enforcing a stricter adherence to the versioning workflow.
+
 ## [2025.09.05-2109] - 2025-09-05
 ### Added
 - **Core Functionality:** Implemented the main processing logic for finding unsaved photos. The script can now:
