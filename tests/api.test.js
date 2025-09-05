@@ -23,10 +23,12 @@ describe('API - Album Loading', () => {
     test('should populate album dropdowns and show a loading state', async () => {
         // Acceptance criteria: The UI shows a loading message, then populates the album lists.
 
-        const mockAlbums = [
-            { id: 'album1', title: 'Cats' },
-            { id: 'album2', title: 'Dogs' },
-        ];
+        const mockApiResponse = {
+            albums: [
+                { id: 'album1', title: 'Cats' },
+                { id: 'album2', title: 'Dogs' },
+            ]
+        };
         // Create a promise that we can resolve manually to test both states
         let resolveGetAlbums;
         const getAlbumsPromise = new Promise(resolve => {
@@ -48,7 +50,7 @@ describe('API - Album Loading', () => {
         // --- Test 2: Check the populated state ---
 
         // Now, resolve the promise to simulate the API call finishing
-        await resolveGetAlbums(mockAlbums);
+        await resolveGetAlbums(mockApiResponse);
 
         // The UI should now be updated.
         expect(sourceSelect.disabled).toBe(false);
@@ -66,6 +68,17 @@ describe('API - Album Loading', () => {
         expect(destOptions[1].value).toBe('album1');
         expect(destOptions[1].textContent).toBe('Cats');
     });
+
+    test('should show "No albums found" if the API returns no albums', async () => {
+        // Acceptance criteria: The user is notified if they have no albums.
+        unsafeWindow.gptkApi.getAlbums.mockResolvedValue({ albums: [] }); // Empty array
+
+        start();
+        await new Promise(resolve => process.nextTick(resolve)); // Wait for UI to update
+
+        const sourceSelect = document.querySelector('.gpf-source-album-select');
+        expect(sourceSelect.textContent).toBe('No albums found');
+    });
 });
 
 describe('API - Core Processing', () => {
@@ -73,8 +86,8 @@ describe('API - Core Processing', () => {
         document.body.innerHTML = '';
         // Mock the API for this suite
         unsafeWindow.gptkApi = {
-            // Provide a mock album for selection
-            getAlbums: jest.fn().mockResolvedValue([{ id: 'album1', title: 'Test Album' }]),
+            // Provide a mock album for selection, with the correct object structure
+            getAlbums: jest.fn().mockResolvedValue({ albums: [{ id: 'album1', title: 'Test Album' }] }),
             getAlbumMediaItems: jest.fn(),
             getItemInfo: jest.fn(),
         };

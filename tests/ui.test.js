@@ -59,16 +59,25 @@ describe('UI Creation', () => {
         expect(destinationAlbumSection.querySelector('label').textContent).toContain('Destination:');
     });
 
-    test('should have a Start and Cancel button', () => {
-        // Acceptance criteria: The UI must have "Start" and "Cancel" buttons.
+    test('should have a Start and Stop button, with Stop hidden initially', () => {
+        // Acceptance criteria: The UI must have "Start" and "Stop" buttons, with correct initial visibility.
         const startButton = document.querySelector('button.gpf-start-button');
-        const cancelButton = document.querySelector('button.gpf-cancel-button');
+        const stopButton = document.querySelector('button.gpf-stop-button');
 
         expect(startButton).not.toBeNull();
         expect(startButton.textContent).toBe('Start');
+        expect(startButton.style.display).not.toBe('none');
 
-        expect(cancelButton).not.toBeNull();
-        expect(cancelButton.textContent).toBe('Cancel');
+        expect(stopButton).not.toBeNull();
+        expect(stopButton.textContent).toBe('Stop');
+        expect(stopButton.style.display).toBe('none');
+    });
+
+    test('should have an X button to close the UI', () => {
+        // Acceptance criteria: The UI must have a dedicated close button.
+        const closeXButton = document.querySelector('button.gpf-close-x-button');
+        expect(closeXButton).not.toBeNull();
+        expect(closeXButton.textContent).toBe('X');
     });
 
     test('should contain filter radio buttons', () => {
@@ -125,5 +134,23 @@ describe('UI API Handling', () => {
         // 3. Assertions: Check the state of the UI.
         const startButton = document.querySelector('button.gpf-start-button');
         expect(startButton.disabled).toBe(false);
+    });
+
+    test('should toggle Start/Stop button visibility during processing', () => {
+        // Acceptance criteria: The user should see a "Stop" button only during processing.
+        unsafeWindow.gptkApi = {
+            getAlbums: jest.fn().mockResolvedValue([]),
+            getAlbumMediaItems: jest.fn().mockReturnValue(new Promise(() => {})), // Never resolves
+            getItemInfo: jest.fn(),
+        };
+        start();
+        const startButton = document.querySelector('button.gpf-start-button');
+        const stopButton = document.querySelector('button.gpf-stop-button');
+
+        // Click start to begin the (mocked) never-ending process
+        startButton.click();
+
+        expect(startButton.style.display).toBe('none');
+        expect(stopButton.style.display).not.toBe('none');
     });
 });

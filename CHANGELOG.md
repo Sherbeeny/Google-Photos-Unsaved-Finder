@@ -12,13 +12,17 @@
   - Asynchronously loads all user albums into Source and Destination dropdowns.
   - Includes filter radio buttons and a batch size number input.
   - Gracefully handles cases where the required `gptkApi` is not found, disabling the UI and showing an error.
-- **Test Coverage:** Added a comprehensive suite of 20 unit and integration tests covering UI components, API interactions, and the core processing logic.
+- **Test Coverage:** Added a comprehensive suite of 24 unit and integration tests, achieving 95% statement coverage.
 
 ### Changed
 - **Development Process:** Fully adopted the modern `pnpm`, `Jest`, and `ESLint` toolchain. The entire feature was built using a strict TDD methodology.
 - **ESLint Configuration:** Replaced a complex and buggy ESLint setup with a modern, file-specific "flat" config that correctly handles the project's mixed module types.
+- **Testing Strategy:** Refactored the entire test suite to use `require()` instead of `eval()`, enabling code coverage instrumentation and improving test stability.
 
 ### Fixed
+- **`TrustedHTML` Crash:** Implemented a Trusted Types policy handler to prevent the script from crashing on pages with a strict Content Security Policy.
+- **Album Loading:** Correctly implemented parsing for the `gptkApi.getAlbums()` response object, fixing a bug where albums would fail to load. Added handling for cases where no albums are found.
+- **UI Controls:** Added the required 'X' close button. Renamed the "Cancel" button to "Stop" and implemented logic to only show it during an ongoing operation.
 - **Test Suite Stability:** Resolved numerous issues in the test environment, including fixing a buggy test parser, correcting asynchronous test logic, and resolving multiple ESLint dependency and configuration errors.
 - **Mock File:** Deleted an unused and syntactically incorrect mock file that was breaking the linting process.
 
