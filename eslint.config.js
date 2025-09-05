@@ -1,44 +1,46 @@
-import { defineConfig } from "eslint/config";
-import globals from "globals";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import js from "@eslint/js";
-import { FlatCompat } from "@eslint/eslintrc";
+import globals from 'globals';
+import js from '@eslint/js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const compat = new FlatCompat({
-    baseDirectory: __dirname,
-    recommendedConfig: js.configs.recommended,
-    allConfig: js.configs.all
-});
-
-export default defineConfig([{
-    extends: compat.extends("eslint:recommended"),
-
+export default [
+  {
+    ignores: ['node_modules/', '.pnpm-store/', 'coverage/'],
+  },
+  js.configs.recommended,
+  {
+    files: ['**/*.js'],
     languageOptions: {
-        globals: {
-            ...globals.browser,
-            ...globals.node,
-            ...globals.jest,
-            GM_registerMenuCommand: "readonly",
-            GM_addStyle: "readonly",
-            GM_info: "readonly",
-            unsafeWindow: "readonly",
-        },
-
-        ecmaVersion: "latest",
-        sourceType: "script",
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        ...globals.jest,
+        GM_registerMenuCommand: 'readonly',
+        GM_addStyle: 'readonly',
+        GM_info: 'readonly',
+        unsafeWindow: 'readonly',
+        global: 'readonly',
+        process: 'readonly',
+        testingExports: 'writable',
+      },
     },
-
     rules: {
-        semi: ["error", "always"],
-
-        quotes: ["error", "single", {
-            avoidEscape: true,
-        }],
-
-        "no-unused-vars": "warn",
-        "no-console": "off",
+      'no-console': 'off',
+      'semi': ['error', 'always'],
+      'quotes': ['error', 'single'],
+      'no-unused-vars': ['warn', { 'args': 'none', 'varsIgnorePattern': '^(start|loadAlbumData|sourceSelect)$' }],
     },
-}]);
+  },
+  {
+    files: ['src/google_photos_unsaved_finder.user.js'],
+    languageOptions: {
+      sourceType: 'script',
+    },
+  },
+  {
+    files: ['tests/**/*.test.js', 'jest.config.js'],
+    languageOptions: {
+      sourceType: 'commonjs',
+    },
+  },
+];

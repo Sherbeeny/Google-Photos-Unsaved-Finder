@@ -1,5 +1,27 @@
 # Changelog
 
+## [2025.09.05-2109] - 2025-09-05
+### Added
+- **Core Functionality:** Implemented the main processing logic for finding unsaved photos. The script can now:
+  - Fetch all media items from a selected album.
+  - Process items in sequential batches to avoid rate-limiting.
+  - Call `getItemInfo` for each item to check its `savedToYourPhotos` status.
+  - Filter items based on user-selected criteria (Saved, Not Saved, Any).
+  - Provide real-time progress updates to the UI log.
+- **UI Enhancements:** The UI is now fully featured:
+  - Asynchronously loads all user albums into Source and Destination dropdowns.
+  - Includes filter radio buttons and a batch size number input.
+  - Gracefully handles cases where the required `gptkApi` is not found, disabling the UI and showing an error.
+- **Test Coverage:** Added a comprehensive suite of 20 unit and integration tests covering UI components, API interactions, and the core processing logic.
+
+### Changed
+- **Development Process:** Fully adopted the modern `pnpm`, `Jest`, and `ESLint` toolchain. The entire feature was built using a strict TDD methodology.
+- **ESLint Configuration:** Replaced a complex and buggy ESLint setup with a modern, file-specific "flat" config that correctly handles the project's mixed module types.
+
+### Fixed
+- **Test Suite Stability:** Resolved numerous issues in the test environment, including fixing a buggy test parser, correcting asynchronous test logic, and resolving multiple ESLint dependency and configuration errors.
+- **Mock File:** Deleted an unused and syntactically incorrect mock file that was breaking the linting process.
+
 ## [2025.09.02-2148] - 2025-09-02
 ### Changed
 - **Testing & Linting Infrastructure:** Replaced all custom testing and linting scripts with a standard toolchain using Jest and ESLint, managed by `pnpm`.

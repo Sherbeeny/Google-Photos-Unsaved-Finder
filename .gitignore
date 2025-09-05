@@ -19,4 +19,4 @@ yarn-debug.log*
 .env.production.local
 
 # Verification files
-.env_verifi*
+.env_verification*

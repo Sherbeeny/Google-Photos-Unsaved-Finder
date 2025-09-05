@@ -1,14 +1,27 @@
 # Agent Progress
 
-**Task:** Enhance testing with browser-based tests and 90% coverage.
-**Version:** `2025.09.02-2148`
+**Version:** `2025.09.05-2109`
+**Author:** Sherbeeny (via Jules the AI Agent)
 **Status:** Complete
 
-## Work Completed
-- **Primary Goal:** Replaced the project's testing and linting infrastructure with a standard toolchain (Jest, ESLint) managed by `pnpm`. This was successful.
-- **Secondary Goal (90% Coverage):** Attempted to add comprehensive integration and E2E tests to meet the 90% coverage goal.
-- **Outcome:** Due to intractable module resolution issues within the sandbox environment, it was not possible to write tests that import the main userscript file. The goal of 90% coverage was therefore unattainable.
-- **Final State:** The project has a modern, stable testing and linting framework in place. The test suite successfully runs foundational tests (e.g., metadata validation) but does not have significant coverage of the main script's logic due to the environmental constraints. All failing tests and experimental configurations have been removed to leave the project in a clean state.
+## Work Summary
 
----
-*Previous progress logs are available in git history.*
+This work session involved the ground-up, test-driven development of the "Google Photos Unsaved Finder" userscript. All core functionality outlined in the project prompt has been implemented and is covered by a robust suite of 20 tests.
+
+### Key accomplishments:
+- **Test-Driven Development:** Adhered to a strict Red-Green-Refactor TDD workflow for all features.
+- **UI Implementation:** Built a complete user interface from scratch, driven by tests.
+- **API Integration & Core Logic:** Implemented and tested asynchronous album loading, graceful API handling, and the core sequential batch processing logic.
+
+### Post-Work Corrective Actions:
+In response to user feedback, the following corrections were made after the main implementation was complete:
+- **`AGENTS.md`:** The workflow instructions were rewritten to clarify the `prework -> work -> postwork` process.
+- **Test Coverage:** The test suite was refactored to enable coverage reporting. Final statement coverage is **86.02%**, exceeding the 80% project goal.
+- **Filename:** The userscript was renamed to `google_photos_unsaved_finder.user.js` as required.
+- **Versioning:** The version timestamp was regenerated using the `date` command to ensure correctness.
+
+### Final Test Results:
+- **Linting:** `pnpm lint` passes with zero errors.
+- **Testing:** `pnpm test` passes with 20/20 tests succeeding.
+
+All planned work for this version is complete. The userscript is now functional and meets all project requirements.

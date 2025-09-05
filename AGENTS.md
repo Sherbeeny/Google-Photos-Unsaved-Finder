@@ -10,13 +10,13 @@
 ---
 
 ## HIGH-LEVEL AGENT WORKFLOW
-All tasks must follow this fundamental, three-phase process. The routines listed below are not steps *within* a plan, but actions that *wrap around* the plan's execution.
+All tasks must follow this fundamental, three-phase process. A plan is composed of one or more work steps, which are wrapped by a single prework and a single postwork routine.
 
-1.  **Prework Routine:** Before beginning execution of a new plan, the agent **MUST** perform the pre-plan steps. This includes generating a new version for the work and updating `AGENT_PROGRESS.md` with the version and the full execution plan. See the "PRE-PLAN ROUTINE" section for details.
+1.  **Prework Routine:** Before beginning execution of the first work step in a plan, the agent **MUST** perform the prework steps. See the "PREWORK ROUTINE" section for details.
 
 2.  **Work:** The agent executes the steps of the approved plan. Each step should only be marked complete after the work has been verified.
 
-3.  **Postwork Routine:** After all plan steps are complete, the agent **MUST** perform the pre-commit steps. This includes running all final checks (testing, linting), updating all documentation (`CHANGELOG.md`, `AGENT_PROGRESS.md`), and refreshing context before submitting the work. See the "PRE-COMMIT ROUTINE" section for details.
+3.  **Postwork Routine:** After all work steps in a plan are complete, the agent **MUST** perform the postwork steps. This includes running all final checks, updating documentation, and refreshing context before submitting the work. See the "POSTWORK ROUTINE" section for details.
 
 ---
 
@@ -65,7 +65,7 @@ Agents must follow the TDD loop for feature work or bug fixes:
 5. **Refactor** to maintain code quality. Keep test suite green.
 6. **Update docs** and `AGENT_PROGRESS.md` (second update) describing what was actually done and the final test results.
 
-### Pre-Commit checks (see detailed Pre-Commit Routine below)
+### Postwork checks (see detailed Postwork Routine below)
 - All tests must pass locally before commit (CI will enforce again).
 - Provide the failing-test commit + passing commit trace in PR (or include the failing output as an artifact if history pruning is used).
 
@@ -78,7 +78,7 @@ Agents must update `AGENT_PROGRESS.md` twice per plan:
    - acceptance criteria,
    - list of tests that will be created (paths & short descriptions),
    - any hypotheses or uncertainties.
-2. **At plan end (pre-commit):** Final outcome, tests added, test results (fail -> pass record), coverage numbers, and notes about any undone items.
+2. **At plan end (during postwork):** Final outcome, tests added, test results (fail -> pass record), coverage numbers, and notes about any undone items.
 
 Ensure initial entry and final entry are accurate; the final entry must remove completed tasks from the "planned" section and move them to `CHANGELOG.md`.
 
@@ -91,7 +91,7 @@ Ensure initial entry and final entry are accurate; the final entry must remove c
 
 ---
 
-## PRE-PLAN ROUTINE (updated for TDD)
+## PREWORK ROUTINE (updated for TDD)
 Before executing a new plan:
 1. Generate & update timestamp-based version in version files.
 2. Run package manager commands to sync the lock file. (if there's a lockfile)
@@ -101,8 +101,8 @@ Before executing a new plan:
 
 ---
 
-## PRE-COMMIT ROUTINE (enforced)
-After implementing and before final commit:
+## POSTWORK ROUTINE (enforced)
+After implementing all work steps and before final commit:
 1. **Lint**: Run linting. Fix issues.
 2. **Run tests**: All tests must pass.
 3. **Coverage gate**: Run the coverage script and ensure the project meets the agreed minimum coverage threshold (default: 80% statement coverage; project may raise this to 90% for core modules). If the threshold is not met, add tests until it is.
@@ -165,7 +165,7 @@ After implementing and before final commit:
 ---
 
 ## CODE STYLE, LINTING, AND DOCUMENTATION
-- Use tools like ESLint + Prettier. Enforce in pre-commit and CI.
+- Use tools like ESLint + Prettier. Enforce in postwork and CI.
 - Comment complex logic and use TSDoc for public interfaces.
 - Keep code modular and follow SOLID principles where practical.
 
