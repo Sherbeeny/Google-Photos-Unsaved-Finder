@@ -3,7 +3,7 @@ import js from '@eslint/js';
 
 export default [
   {
-    ignores: ['node_modules/', '.pnpm-store/', 'coverage/'],
+    ignores: ["node_modules/", ".pnpm-store/", "coverage/"],
   },
   js.configs.recommended,
   {
@@ -28,11 +28,11 @@ export default [
       'no-console': 'off',
       'semi': ['error', 'always'],
       'quotes': ['error', 'single'],
-      'no-unused-vars': ['warn', { 'args': 'none', 'varsIgnorePattern': '^(start|loadAlbumData|sourceSelect)$' }],
+      'no-unused-vars': ['warn', { 'args': 'none' }],
     },
   },
   {
-    files: ['src/google_photos_unsaved_finder.user.js'],
+    files: ['src/**/*.user.js'],
     languageOptions: {
       sourceType: 'script',
     },

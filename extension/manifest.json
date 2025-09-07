@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Test Harness Userscript Installer",
+  "version": "1.0",
+  "description": "Opens the test userscripts on startup to trigger Tampermonkey installation.",
+  "permissions": [
+    "background",
+    "tabs"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}
