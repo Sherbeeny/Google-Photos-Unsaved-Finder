@@ -1,45 +1,39 @@
 # Agent Progress
 
-## Version: 2025.09.08-1241
+## Version: 2025.09.08-1254
 
-### Plan
+### Plan: Fix Trusted Types Conflict
 
-**Official Pivot to Jest-Based Testing**
-
-**Reasoning:** The Playwright test harness is unworkable due to intractable environmental issues preventing a local server from running. We are now pivoting to the project's previously successful Jest testing strategy, which relies on mocking, to achieve the goal of fixing the userscript.
+**Reasoning:** A critical bug was reported by the user where the script crashes if another script (like GPTK) has already created a 'default' Trusted Types policy. The existing test suite failed to catch this real-world scenario. This plan addresses the bug using a strict TDD methodology as required by `AGENTS.md`.
 
 ---
 
-**Phase 1: Pre-Work & Cleanup**
+**Phase 1: Pre-Work**
 
-1.  **`prework:` Clean Up Unused Files and Dependencies.**
-    *   (Completed)
-
-2.  **`prework:` Versioning and Documentation.**
-    *   Generate a new timestamp-based version string for this major strategy shift.
-    *   Update the version in the cleaned `package.json`.
-    *   Update `AGENT_PROGRESS.md` with the new version and this new Jest-based plan.
+1.  **`prework:` Versioning & Setup.**
+    *   (Completed) Generated new version `2025.09.08-1254`.
+    *   (Completed) Updated `package.json`, userscript metadata, and tests.
+    *   (Completed) Synced `pnpm-lock.yaml`.
+    *   (Completed) Updated this file.
 
 **Phase 2: Work (TDD with Jest)**
 
-3.  **`work:` Write Failing Jest Tests for Bugs (TDD Red).**
-    *   First, I will review the existing Jest tests (`api.test.js`, `ui.test.js`, etc.) to understand the established patterns for mocking `unsafeWindow` and `gptkApi`.
-    *   I will create a new test file, `tests/bug-reproduction.test.js`.
-    *   Inside this file, I will write Jest tests that fail because of the existing bugs:
-        *   **Test 1 (Silent Crash):** This test will call the userscript's `start()` function. I will mock the `gptkApi.loadAlbumData` method to return a rejected promise. The test will assert that an error message is properly displayed in the UI, which it currently won't be.
-        *   **Test 2 (Incorrect Parsing):** This test will call the `loadAlbumData` function directly. I will mock the `gptkApi.getAlbums` response to use the correct `items` and `mediaKey` structure. The test will assert that the UI's `<select>` elements are populated with the correct album titles, which will fail with the current parsing logic.
+2.  **`work:` Write a Failing Test (TDD Red).**
+    *   **Goal:** Create a test that fails for the exact reason the bug occurs.
+    *   **Action:** In `tests/trusted-types.test.js`, I will add a new test case. This test will mock `window.trustedTypes.createPolicy` to throw an error containing the string "Policy with name 'default' already exists." It will then call the `getPolicy()` function and assert that the function handles this error gracefully instead of crashing.
+    *   **Verification:** I will run `npm test` and confirm that this new test fails.
 
-4.  **`work:` Fix the Core Bugs (TDD Green).**
-    *   In `src/google_photos_saved_finder.user.js`, I will implement the necessary code changes:
-        *   **Fix 1 (Silent Crash):** Add the `await` keyword to the `loadAlbumData()` call within the `start` function's `try...catch` block to properly handle the promise rejection.
-        *   **Fix 2 (Incorrect Parsing):** Modify the `loadAlbumData` function to correctly iterate over `response.items` and use `album.mediaKey`.
-    *   After applying the fixes, I will run the Jest test suite (`pnpm test`) and confirm that the new tests pass.
+3.  **`work:` Implement the Fix (TDD Green).**
+    *   **Goal:** Make the failing test pass.
+    *   **Action:** I will rewrite the `getPolicy` function in `src/google_photos_unsaved_finder.user.js`. The new implementation will use a `try...catch` block. It will attempt to create the policy, and if it catches an error indicating the policy already exists, it will then retrieve the existing policy using `window.trustedTypes.policies.get('default')`.
+    *   **Verification:** I will run `npm test` and confirm that all tests now pass.
 
 **Phase 3: Post-Work Routine**
 
-5.  **`postwork:` Final Verification and Documentation.**
-    *   Run the linter (`pnpm lint`) and fix any issues.
-    *   Run the full Jest test suite to ensure all tests pass and there are no regressions.
+4.  **`postwork:` Final Verification and Documentation.**
+    *   Run the linter (`npm run lint`).
+    *   Run the full Jest test suite (`npm test`) one last time.
     *   Update `AGENT_PROGRESS.md` with the final results.
-    *   Create a `CHANGELOG.md` entry for the new version.
-    *   Submit the final, working code for review.
+    *   Create a `CHANGELOG.md` entry for version `2025.09.08-1254`.
+    *   Perform the full Context Window Refresh procedure.
+    *   Submit the final, working code.
