@@ -61,4 +61,26 @@ describe('TrustedTypes', () => {
         expect(window.trustedTypes.createPolicy).toHaveBeenCalledWith('default', expect.any(Object));
         expect(window.trustedTypes.policies.get).toHaveBeenCalledWith('default');
     });
+
+    test('getPolicy should not crash if policies object is missing', () => {
+        const { getPolicy } = require('../src/google_photos_unsaved_finder.user.js');
+        // Acceptance criteria: If `createPolicy` fails and `window.trustedTypes.policies` is undefined,
+        // the script must not crash and should return a fallback policy.
+
+        // Override the mock to simulate the specific failure case
+        global.window.trustedTypes.createPolicy.mockImplementation(() => {
+            throw new TypeError("Policy with name \"default\" already exists.");
+        });
+        // This is the key to reproducing the bug: the `policies` object is missing.
+        delete global.window.trustedTypes.policies;
+
+        let policy;
+        expect(() => {
+            policy = getPolicy();
+        }).not.toThrow();
+
+        expect(policy).toBeDefined();
+        expect(typeof policy.createHTML).toBe('function');
+        expect(policy.createHTML('test')).toBe('test'); // Ensure it's a valid fallback
+    });
 });

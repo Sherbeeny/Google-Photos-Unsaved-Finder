@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Unsaved Finder
 // @namespace    http://tampermonkey.net/
-// @version      2025.09.08-1254
+// @version      2025.09.08-1500
 // @description  A userscript to find unsaved photos in Google Photos albums.
 // @author       Sherbeeny (via Jules the AI Agent)
 // @match        https://photos.google.com/*
@@ -36,7 +36,13 @@
             } catch (e) {
                 // If it fails specifically because it already exists, get the existing one.
                 if (String(e).includes('already exists')) {
-                    _policy = window.trustedTypes.policies.get('default');
+                    // BUG FIX: check for .policies before trying to use it.
+                    if (window.trustedTypes.policies) {
+                        _policy = window.trustedTypes.policies.get('default');
+                    } else {
+                        // If .policies is missing, we can't get the policy, so we have to create a fallback.
+                        _policy = { createHTML: (string) => string };
+                    }
                 } else {
                     // For any other error, re-throw it.
                     throw e;

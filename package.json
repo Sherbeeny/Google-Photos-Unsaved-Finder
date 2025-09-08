@@ -1,6 +1,6 @@
 {
   "name": "google-photos-unsaved-finder-dev-harness",
-  "version": "2025.09.08-1254",
+  "version": "2025.09.08-1500",
   "description": "Development and testing harness for the Google Photos Unsaved Finder userscript.",
   "main": "index.js",
   "scripts": {
