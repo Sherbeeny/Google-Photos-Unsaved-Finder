@@ -24,9 +24,9 @@ describe('API - Album Loading', () => {
         // Acceptance criteria: The UI shows a loading message, then populates the album lists.
 
         const mockApiResponse = {
-            albums: [
-                { id: 'album1', title: 'Cats' },
-                { id: 'album2', title: 'Dogs' },
+            items: [
+                { mediaKey: 'album1', title: 'Cats' },
+                { mediaKey: 'album2', title: 'Dogs' },
             ]
         };
         // Create a promise that we can resolve manually to test both states
@@ -87,7 +87,7 @@ describe('API - Core Processing', () => {
         // Mock the API for this suite
         unsafeWindow.gptkApi = {
             // Provide a mock album for selection, with the correct object structure
-            getAlbums: jest.fn().mockResolvedValue({ albums: [{ id: 'album1', title: 'Test Album' }] }),
+            getAlbums: jest.fn().mockResolvedValue({ items: [{ mediaKey: 'album1', title: 'Test Album' }] }),
             getAlbumMediaItems: jest.fn(),
             getItemInfo: jest.fn(),
         };

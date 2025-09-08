@@ -133,7 +133,8 @@
 
         try {
             const response = await unsafeWindow.gptkApi.getAlbums();
-            const albums = response && response.albums ? response.albums : [];
+            // Bug Fix: Use `response.items` instead of `response.albums`
+            const albums = response && response.items ? response.items : [];
 
             setSafeHTML(sourceSelect, '');
             setSafeHTML(destSelect, '');
@@ -156,7 +157,8 @@
 
             albums.forEach(album => {
                 const option = document.createElement('option');
-                option.value = album.id;
+                // Bug Fix: Use `album.mediaKey` instead of `album.id`
+                option.value = album.mediaKey;
                 option.textContent = album.title;
                 sourceSelect.appendChild(option.cloneNode(true));
                 destSelect.appendChild(option);
@@ -209,7 +211,7 @@
         return container;
     }
 
-    function start() {
+    async function start() {
         GM_addStyle(`
             .gpf-window { position: fixed; top: 10%; left: 50%; transform: translateX(-50%); background-color: #fff; color: #202124; border: 1px solid #dadce0; border-radius: 8px; padding: 1rem 2rem; z-index: 99999; width: 500px; box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
             .gpf-window h2 { margin-top: 0; text-align: center; color: #202124; }
@@ -235,7 +237,8 @@
             log('Error: Google Photos Toolkit (GPTK) not found.', 'error');
         } else {
             try {
-                loadAlbumData(sourceSelect, destSelect);
+                // Bug Fix: Await the async function to ensure the catch block works
+                await loadAlbumData(sourceSelect, destSelect);
             } catch(e) {
                 log('A critical error occurred during startup.', 'error', e);
             }

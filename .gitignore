@@ -10,6 +10,8 @@ yarn-debug.log*
 # Test Results
 /coverage
 /test-results/
+/test-user-data/
+/playwright-report/
 
 # Environment
 .env

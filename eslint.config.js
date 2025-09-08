@@ -38,7 +38,7 @@ export default [
     },
   },
   {
-    files: ['tests/**/*.test.js', 'jest.config.js'],
+    files: ['tests/**/*.test.js', 'jest.config.js', 'playwright.config.js'],
     languageOptions: {
       sourceType: 'commonjs',
     },
