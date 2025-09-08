@@ -1,5 +1,10 @@
 # Changelog
 
+## [2025.09.08-1241] - 2025-09-08
+### Fixed
+- Corrected the version number format across all project files (`package.json`, userscript, tests, and docs) to adhere to the `yyyy.mm.dd-HHMM` standard specified in `AGENTS.md`.
+- Updated `README.md` to accurately reflect the project's current features, prerequisites, and development workflow.
+
 ## [2025.09.05-2249] - 2025-09-05
 ### Added
 - **Core Functionality:** Implemented the main processing logic for finding unsaved photos. The script can now:
