@@ -14,7 +14,15 @@ All tasks must follow this fundamental, three-phase process.
 
 **Core Principle:** Each distinct body of work (e.g., initial feature implementation, a subsequent bug-fix session) is considered a new, distinct task. As such, **each task MUST have its own new version and its own complete `prework -> work -> postwork` cycle.**
 
-A plan is composed of one or more work steps, which are wrapped by a single prework and a single postwork routine. Each step in a plan **MUST** be prefixed with `prework:`, `work:`, or `postwork:` to make the current phase clear.
+### Plan Structure (MANDATORY)
+A plan **MUST** be structured with exactly three phases:
+1.  **A single `prework` step as the first step.** This step handles all versioning and initial documentation.
+2.  **One or more `work` steps.** These steps cover the implementation and refactoring of the feature or bug fix.
+3.  **A single `postwork` step as the last step.** This step handles all final verification, documentation, and submission tasks.
+
+Each step in a plan **MUST** be prefixed with `prework:`, `work:`, or `postwork:` to make the current phase clear.
+
+### The Three Phases
 
 1.  **Prework Routine:** Before beginning execution of the first work step in a plan, the agent **MUST** perform the prework steps. See the "PREWORK ROUTINE" section for details.
 

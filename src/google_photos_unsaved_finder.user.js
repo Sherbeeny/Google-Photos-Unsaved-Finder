@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Unsaved Finder
 // @namespace    http://tampermonkey.net/
-// @version      2025.09.08-1738
+// @version      2025.09.08-1900
 // @description  A userscript to find unsaved photos in Google Photos albums.
 // @author       Sherbeeny (via Jules the AI Agent)
 // @match        https://photos.google.com/*
@@ -185,6 +185,7 @@
 
             // Add "Select All" checkbox
             const selectAllContainer = document.createElement('div');
+            selectAllContainer.className = 'gpf-checklist-item';
             const selectAllId = 'gpf-album-select-all';
             setSafeHTML(selectAllContainer, `
                 <input type="checkbox" id="${selectAllId}" value="select-all">
@@ -214,6 +215,7 @@
                 // For Source Checklist
                 const checkboxId = `gpf-album-${album.mediaKey}`;
                 const checkboxContainer = document.createElement('div');
+                checkboxContainer.className = 'gpf-checklist-item';
                 setSafeHTML(checkboxContainer, `
                     <input type="checkbox" id="${checkboxId}" value="${album.mediaKey}">
                     <label for="${checkboxId}">${album.title}</label>
@@ -252,9 +254,9 @@
             <div class="gpf-section-filters">
                 <label>Filter by:</label>
                 <div class="gpf-radio-group">
-                    <label>Any<input type="radio" name="filter" value="any"></label>
-                    <label>Saved<input type="radio" name="filter" value="saved"></label>
-                    <label>Not Saved<input type="radio" name="filter" value="not-saved" checked></label>
+                    <label><input type="radio" name="filter" value="any"> Any</label>
+                    <label><input type="radio" name="filter" value="saved"> Saved</label>
+                    <label><input type="radio" name="filter" value="not-saved" checked> Not Saved</label>
                 </div>
             </div>
             <div class="gpf-section-batch-size">
@@ -287,10 +289,13 @@
             .gpf-window label { display: block; margin-bottom: .5rem; font-weight: 500; color: #3c4043; }
             .gpf-window select, .gpf-window input { width: 100%; padding: 8px; border: 1px solid #dadce0; border-radius: 4px; }
             .gpf-source-album-checklist { height: 150px; overflow-y: auto; border: 1px solid #dadce0; padding: 8px; border-radius: 4px; }
+            .gpf-checklist-item { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0 !important; }
+            .gpf-checklist-item input { order: 1; width: auto; }
+            .gpf-checklist-item label { order: 2; }
             .gpf-radio-group { display: flex; gap: 1.5rem; justify-content: flex-start; }
             .gpf-radio-group label { font-weight: normal; display: flex; align-items: center; gap: 0.5rem; }
-            .gpf-radio-group label input { order: 2; width: auto; }
-            .gpf-batch-size-input { width: 80px; }
+            .gpf-radio-group label input { order: 1; width: auto; }
+            .gpf-batch-size-input { max-width: 100px; }
             .gpf-log-window { height: 100px; overflow-y: scroll; border: 1px solid #dadce0; padding: 8px; text-align: left; font-size: 0.8rem; background: #f8f9fa; color: #3c4043; }
         `);
         const ui = createUI();
