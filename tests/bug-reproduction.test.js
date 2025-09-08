@@ -67,16 +67,16 @@ describe('Bug Reproduction Tests', () => {
         start(); // This will create the UI and call loadAlbumData
         await new Promise(resolve => process.nextTick(resolve)); // Wait for the DOM to update
 
-        // 3. Assertion: Check if the dropdowns were populated correctly
-        const sourceSelect = document.querySelector('.gpf-source-album-select');
-        const options = sourceSelect.querySelectorAll('option');
+        // 3. Assertion: Check if the checklist was populated correctly
+        const sourceChecklist = document.querySelector('.gpf-source-album-checklist');
+        const checkboxes = sourceChecklist.querySelectorAll('input[type="checkbox"]');
 
-        // The test will fail here because the script is looking for `response.albums`
-        // which is undefined, so it will think there are no albums.
-        expect(options.length).toBe(3); // "Select All" + 2 albums
-        expect(options[1].value).toBe('key1');
-        expect(options[1].textContent).toBe('Album One');
-        expect(options[2].value).toBe('key2');
-        expect(options[2].textContent).toBe('Album Two');
+        expect(checkboxes.length).toBe(3); // "Select All" + 2 albums
+
+        const firstAlbumCheckbox = sourceChecklist.querySelector('input[value="key1"]');
+        expect(firstAlbumCheckbox).not.toBeNull();
+
+        const label = sourceChecklist.querySelector('label[for="gpf-album-key1"]');
+        expect(label.textContent).toBe('Album One');
     });
 });

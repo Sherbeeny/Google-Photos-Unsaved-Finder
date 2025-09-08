@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Unsaved Finder
 // @namespace    http://tampermonkey.net/
-// @version      2025.09.08-1500
+// @version      2025.09.08-1738
 // @description  A userscript to find unsaved photos in Google Photos albums.
 // @author       Sherbeeny (via Jules the AI Agent)
 // @match        https://photos.google.com/*
@@ -98,7 +98,7 @@
     async function startProcessing(ui) {
         const startButton = ui.querySelector('.gpf-start-button');
         const stopButton = ui.querySelector('.gpf-stop-button');
-        const sourceSelect = ui.querySelector('.gpf-source-album-select');
+        const sourceChecklist = ui.querySelector('.gpf-source-album-checklist');
         const filter = ui.querySelector('input[name="filter"]:checked').value;
         const batchSize = parseInt(ui.querySelector('.gpf-batch-size-input').value, 10);
 
@@ -106,21 +106,39 @@
         stopButton.style.display = 'inline-block';
         clearLog();
 
-        const selectedAlbumId = sourceSelect.value;
-        if (!selectedAlbumId) {
-            log('Error: No source album selected.', 'error');
+        const selectedCheckboxes = sourceChecklist.querySelectorAll('input[type="checkbox"]:checked');
+        const selectedAlbumIds = Array.from(selectedCheckboxes)
+            .map(cb => cb.value)
+            .filter(value => value !== 'select-all'); // Exclude 'select-all' checkbox value if present
+
+        if (selectedAlbumIds.length === 0) {
+            log('Error: No source albums selected.', 'error');
+            startButton.style.display = 'inline-block';
+            stopButton.style.display = 'none';
             return;
         }
 
-        log('Fetching media items...');
-        const mediaItems = await unsafeWindow.gptkApi.getAlbumMediaItems(selectedAlbumId);
-        log(`Found ${mediaItems.length} total items.`);
+        log(`Processing ${selectedAlbumIds.length} source album(s)...`);
+        let totalItems = 0;
+        const allMediaItems = [];
+
+        for (const albumId of selectedAlbumIds) {
+            const albumLabel = sourceChecklist.querySelector(`label[for="gpf-album-${albumId}"]`);
+            const albumTitle = albumLabel ? albumLabel.textContent : `Album ID ${albumId}`;
+            log(`Fetching media items from "${albumTitle}"...`);
+            const mediaItems = await unsafeWindow.gptkApi.getAlbumMediaItems(albumId);
+            totalItems += mediaItems.length;
+            allMediaItems.push(...mediaItems);
+            log(`Found ${mediaItems.length} items in "${albumTitle}".`);
+        }
+        log(`Found ${totalItems} total items across all selected albums.`);
+
 
         const matchedItems = [];
-        const numBatches = Math.ceil(mediaItems.length / batchSize);
+        const numBatches = Math.ceil(allMediaItems.length / batchSize);
 
         for (let i = 0; i < numBatches; i++) {
-            const batch = mediaItems.slice(i * batchSize, (i + 1) * batchSize);
+            const batch = allMediaItems.slice(i * batchSize, (i + 1) * batchSize);
             log(`Processing batch ${i + 1} of ${numBatches}...`);
 
             const promises = batch.map(item => unsafeWindow.gptkApi.getItemInfo(item.id));
@@ -146,51 +164,75 @@
         return matchedItems;
     }
 
-    async function loadAlbumData(sourceSelect, destSelect) {
-        sourceSelect.disabled = true;
+    async function loadAlbumData(sourceContainer, destSelect) {
+        sourceContainer.classList.add('gpf-loading');
         destSelect.disabled = true;
-        setSafeHTML(sourceSelect, '<option>Refreshing albums...</option>');
+        setSafeHTML(sourceContainer, '<div>Refreshing albums...</div>');
         setSafeHTML(destSelect, '<option>Refreshing albums...</option>');
 
         try {
             const response = await unsafeWindow.gptkApi.getAlbums();
-            // Bug Fix: Use `response.items` instead of `response.albums`
             const albums = response && response.items ? response.items : [];
 
-            setSafeHTML(sourceSelect, '');
+            setSafeHTML(sourceContainer, '');
             setSafeHTML(destSelect, '');
 
             if (albums.length === 0) {
-                setSafeHTML(sourceSelect, '<option>No albums found</option>');
+                setSafeHTML(sourceContainer, '<div>No albums found</div>');
                 setSafeHTML(destSelect, '<option>No albums found</option>');
                 return;
             }
 
-            const sourceSelectAll = document.createElement('option');
-            sourceSelectAll.textContent = 'Select All';
-            sourceSelectAll.value = 'all';
-            sourceSelect.appendChild(sourceSelectAll);
+            // Add "Select All" checkbox
+            const selectAllContainer = document.createElement('div');
+            const selectAllId = 'gpf-album-select-all';
+            setSafeHTML(selectAllContainer, `
+                <input type="checkbox" id="${selectAllId}" value="select-all">
+                <label for="${selectAllId}" style="font-weight: bold;">Select All</label>
+            `);
+            sourceContainer.appendChild(selectAllContainer);
+
+            selectAllContainer.querySelector('input').addEventListener('change', (e) => {
+                const isChecked = e.target.checked;
+                sourceContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                    cb.checked = isChecked;
+                });
+            });
+
 
             const destSelectOne = document.createElement('option');
             destSelectOne.textContent = '-- Select an album --';
             destSelectOne.value = '';
             destSelect.appendChild(destSelectOne);
 
+            const createNewOption = document.createElement('option');
+            createNewOption.textContent = '*** Create new album... ***';
+            createNewOption.value = 'create-new';
+            destSelect.appendChild(createNewOption);
+
             albums.forEach(album => {
+                // For Source Checklist
+                const checkboxId = `gpf-album-${album.mediaKey}`;
+                const checkboxContainer = document.createElement('div');
+                setSafeHTML(checkboxContainer, `
+                    <input type="checkbox" id="${checkboxId}" value="${album.mediaKey}">
+                    <label for="${checkboxId}">${album.title}</label>
+                `);
+                sourceContainer.appendChild(checkboxContainer);
+
+                // For Destination Dropdown
                 const option = document.createElement('option');
-                // Bug Fix: Use `album.mediaKey` instead of `album.id`
                 option.value = album.mediaKey;
                 option.textContent = album.title;
-                sourceSelect.appendChild(option.cloneNode(true));
                 destSelect.appendChild(option);
             });
 
         } catch (error) {
             log('Error loading albums', 'error', error);
-            setSafeHTML(sourceSelect, '<option>Error loading albums</option>');
+            setSafeHTML(sourceContainer, '<div>Error loading albums</div>');
             setSafeHTML(destSelect, '<option>Error loading albums</option>');
         } finally {
-            sourceSelect.disabled = false;
+            sourceContainer.classList.remove('gpf-loading');
             destSelect.disabled = false;
         }
     }
@@ -199,18 +241,20 @@
         const container = document.createElement('div');
         container.className = 'gpf-window';
         setSafeHTML(container, `
-            <button class="gpf-close-x-button" style="position: absolute; top: 10px; right: 10px; border: none; background: transparent; font-size: 1.5rem; cursor: pointer; color: #5f6368;">X</button>
-            <h2>Google Photos Unsaved Finder</h2>
+            <button class="gpf-close-x-button" style="position: absolute; top: 10px; right: 10px; border: none; background: transparent; font-size: 1.5rem; cursor: pointer; color: #5f6368;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <h2 style="margin-top: 2rem;">Google Photos Unsaved Finder</h2>
             <div class="gpf-section-source-albums">
                 <label>Source Album(s):</label>
-                <select class="gpf-source-album-select" multiple></select>
+                <div class="gpf-source-album-checklist"></div>
             </div>
             <div class="gpf-section-filters">
                 <label>Filter by:</label>
                 <div class="gpf-radio-group">
-                    <label><input type="radio" name="filter" value="any"> Any</label>
-                    <label><input type="radio" name="filter" value="saved"> Saved</label>
-                    <label><input type="radio" name="filter" value="not-saved" checked> Not Saved</label>
+                    <label>Any<input type="radio" name="filter" value="any"></label>
+                    <label>Saved<input type="radio" name="filter" value="saved"></label>
+                    <label>Not Saved<input type="radio" name="filter" value="not-saved" checked></label>
                 </div>
             </div>
             <div class="gpf-section-batch-size">
@@ -220,10 +264,13 @@
             <div class="gpf-section-destination">
                 <label>Destination:</label>
                 <select class="gpf-dest-album-select"></select>
+                <div class="gpf-create-album-input-container" style="display: none; margin-top: 0.5rem;">
+                    <input type="text" class="gpf-new-album-name-input" placeholder="Enter new album name...">
+                </div>
             </div>
-            <div>
-                <button class="gpf-start-button">Start</button>
-                <button class="gpf-stop-button" style="display: none;">Stop</button>
+            <div style="text-align: right;">
+                <button class="gpf-start-button" style="padding: 10px 16px; font-size: 1rem;">Start</button>
+                <button class="gpf-stop-button" style="display: none; padding: 10px 16px; font-size: 1rem;">Stop</button>
             </div>
             <div class="gpf-feedback-area">
                 <div class="gpf-log-window"></div>
@@ -239,15 +286,27 @@
             .gpf-window div { margin-bottom: 1rem; }
             .gpf-window label { display: block; margin-bottom: .5rem; font-weight: 500; color: #3c4043; }
             .gpf-window select, .gpf-window input { width: 100%; padding: 8px; border: 1px solid #dadce0; border-radius: 4px; }
-            .gpf-radio-group { display: flex; gap: 1rem; }
-            .gpf-radio-group label { font-weight: normal; }
+            .gpf-source-album-checklist { height: 150px; overflow-y: auto; border: 1px solid #dadce0; padding: 8px; border-radius: 4px; }
+            .gpf-radio-group { display: flex; gap: 1.5rem; justify-content: flex-start; }
+            .gpf-radio-group label { font-weight: normal; display: flex; align-items: center; gap: 0.5rem; }
+            .gpf-radio-group label input { order: 2; width: auto; }
+            .gpf-batch-size-input { width: 80px; }
             .gpf-log-window { height: 100px; overflow-y: scroll; border: 1px solid #dadce0; padding: 8px; text-align: left; font-size: 0.8rem; background: #f8f9fa; color: #3c4043; }
         `);
         const ui = createUI();
         const closeButton = ui.querySelector('.gpf-close-x-button');
         const startButton = ui.querySelector('.gpf-start-button');
-        const sourceSelect = ui.querySelector('.gpf-source-album-select');
+        const sourceContainer = ui.querySelector('.gpf-source-album-checklist');
         const destSelect = ui.querySelector('.gpf-dest-album-select');
+        const newAlbumInputContainer = ui.querySelector('.gpf-create-album-input-container');
+
+        destSelect.addEventListener('change', () => {
+            if (destSelect.value === 'create-new') {
+                newAlbumInputContainer.style.display = 'block';
+            } else {
+                newAlbumInputContainer.style.display = 'none';
+            }
+        });
 
         closeButton.addEventListener('click', () => { ui.remove(); });
         startButton.addEventListener('click', () => startProcessing(ui));
@@ -259,7 +318,7 @@
         } else {
             try {
                 // Bug Fix: Await the async function to ensure the catch block works
-                await loadAlbumData(sourceSelect, destSelect);
+                await loadAlbumData(sourceContainer, destSelect);
             } catch(e) {
                 log('A critical error occurred during startup.', 'error', e);
             }

@@ -77,7 +77,7 @@ describe('UI Creation', () => {
         // Acceptance criteria: The UI must have a dedicated close button.
         const closeXButton = document.querySelector('button.gpf-close-x-button');
         expect(closeXButton).not.toBeNull();
-        expect(closeXButton.textContent).toBe('X');
+        expect(closeXButton.querySelector('svg')).not.toBeNull();
     });
 
     test('should contain filter radio buttons', () => {
@@ -125,7 +125,7 @@ describe('UI API Handling', () => {
 
         // 1. Setup: Mock the API's presence, including the functions that will be called.
         unsafeWindow.gptkApi = {
-            getAlbums: jest.fn().mockResolvedValue([]), // Mock getAlbums to prevent errors
+            getAlbums: jest.fn().mockResolvedValue({ items: [] }),
         };
 
         // 2. Action: Run the script's entry point.
@@ -148,16 +148,24 @@ describe('UI API Handling', () => {
         consoleErrorSpy.mockRestore();
     });
 
-    test('should toggle Start/Stop button visibility during processing', () => {
+    test('should toggle Start/Stop button visibility during processing', async () => {
         // Acceptance criteria: The user should see a "Stop" button only during processing.
         unsafeWindow.gptkApi = {
-            getAlbums: jest.fn().mockResolvedValue([]),
+            getAlbums: jest.fn().mockResolvedValue({ items: [{ mediaKey: 'album1', title: 'My Album' }] }),
             getAlbumMediaItems: jest.fn().mockReturnValue(new Promise(() => {})), // Never resolves
             getItemInfo: jest.fn(),
         };
         start();
+
+        // Wait for albums to load
+        await new Promise(resolve => process.nextTick(resolve));
+
         const startButton = document.querySelector('button.gpf-start-button');
         const stopButton = document.querySelector('button.gpf-stop-button');
+        const sourceChecklist = document.querySelector('.gpf-source-album-checklist');
+
+        // Select an album
+        sourceChecklist.querySelector('input[value="album1"]').checked = true;
 
         // Click start to begin the (mocked) never-ending process
         startButton.click();

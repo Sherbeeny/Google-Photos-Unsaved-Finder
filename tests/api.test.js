@@ -1,135 +1,123 @@
-// Mock the global Tampermonkey functions and objects before the script is required.
+// This file tests the interaction between the UI and the mocked gptkApi.
+// It ensures that album data is loaded correctly and that the core processing
+// logic functions as expected.
+
+// Mock the global Tampermonkey functions and objects.
 global.GM_addStyle = jest.fn();
 global.GM_registerMenuCommand = jest.fn();
 global.GM_info = { script: { version: 'test-version' } };
 global.unsafeWindow = {};
 
-// By requiring the script, we allow Jest to instrument it for coverage.
-const { start, loadAlbumData, startProcessing } = require('../src/google_photos_unsaved_finder.user.js');
+// Import the functions to be tested.
+const { createUI, loadAlbumData, startProcessing } = require('../src/google_photos_unsaved_finder.user.js');
 
 describe('API - Album Loading', () => {
+    let sourceContainer;
+    let destSelect;
+    let ui;
+
     beforeEach(() => {
-        document.body.innerHTML = '';
-        // Mock the entire API for this test suite
-        unsafeWindow.gptkApi = {
-            getAlbums: jest.fn(),
-        };
+        // Create a fresh UI for each test.
+        ui = createUI();
+        document.body.appendChild(ui);
+        sourceContainer = document.querySelector('.gpf-source-album-checklist');
+        destSelect = document.querySelector('.gpf-dest-album-select');
     });
 
     afterEach(() => {
+        // Clean up the DOM.
+        document.body.innerHTML = '';
         jest.clearAllMocks();
     });
 
-    test('should populate album dropdowns and show a loading state', async () => {
-        // Acceptance criteria: The UI shows a loading message, then populates the album lists.
-
-        const mockApiResponse = {
-            items: [
-                { mediaKey: 'album1', title: 'Cats' },
-                { mediaKey: 'album2', title: 'Dogs' },
-            ]
+    test('should populate album checklist and show a loading state', async () => {
+        // Acceptance criteria: The UI should indicate that albums are being loaded.
+        const mockAlbums = { items: [{ mediaKey: 'album1', title: 'Test Album' }] };
+        unsafeWindow.gptkApi = {
+            getAlbums: jest.fn().mockResolvedValue(mockAlbums),
         };
-        // Create a promise that we can resolve manually to test both states
-        let resolveGetAlbums;
-        const getAlbumsPromise = new Promise(resolve => {
-            resolveGetAlbums = resolve;
-        });
-        unsafeWindow.gptkApi.getAlbums.mockReturnValue(getAlbumsPromise);
 
-        // --- Test 1: Check the loading state ---
-        start(); // This should trigger the album loading
+        // The loadAlbumData function is async, so we can await its completion.
+        const loadPromise = loadAlbumData(sourceContainer, destSelect);
 
-        const sourceSelect = document.querySelector('.gpf-source-album-select');
-        const destSelect = document.querySelector('.gpf-dest-album-select');
-
-        expect(sourceSelect.disabled).toBe(true);
-        expect(sourceSelect.textContent).toBe('Refreshing albums...');
+        // Immediately after calling, the UI should be in a loading state.
+        expect(sourceContainer.classList.contains('gpf-loading')).toBe(true);
+        expect(sourceContainer.textContent).toBe('Refreshing albums...');
         expect(destSelect.disabled).toBe(true);
         expect(destSelect.textContent).toBe('Refreshing albums...');
 
-        // --- Test 2: Check the populated state ---
+        await loadPromise; // Wait for the loading to complete.
 
-        // Now, resolve the promise to simulate the API call finishing
-        await resolveGetAlbums(mockApiResponse);
-
-        // The UI should now be updated.
-        expect(sourceSelect.disabled).toBe(false);
+        // After completion, the checklist should be populated and enabled.
+        expect(sourceContainer.classList.contains('gpf-loading')).toBe(false);
         expect(destSelect.disabled).toBe(false);
-
-        const sourceOptions = sourceSelect.querySelectorAll('option');
-        expect(sourceOptions).toHaveLength(3); // "Select All" + 2 albums
-        expect(sourceOptions[0].textContent).toBe('Select All');
-        expect(sourceOptions[1].value).toBe('album1');
-        expect(sourceOptions[1].textContent).toBe('Cats');
-
-        const destOptions = destSelect.querySelectorAll('option');
-        expect(destOptions).toHaveLength(3); // "Select one" + 2 albums
-        expect(destOptions[0].textContent).toBe('-- Select an album --');
-        expect(destOptions[1].value).toBe('album1');
-        expect(destOptions[1].textContent).toBe('Cats');
+        const checkboxes = sourceContainer.querySelectorAll('input[type="checkbox"]');
+        expect(checkboxes).toHaveLength(2); // "Select All" + 1 album
+        expect(destSelect.options).toHaveLength(3); // "Select an album", "Create new", + 1 album
+        expect(sourceContainer.textContent).toContain('Test Album');
     });
 
     test('should show "No albums found" if the API returns no albums', async () => {
-        // Acceptance criteria: The user is notified if they have no albums.
-        unsafeWindow.gptkApi.getAlbums.mockResolvedValue({ albums: [] }); // Empty array
+        // Acceptance criteria: The UI should inform the user if no albums are available.
+        unsafeWindow.gptkApi = {
+            getAlbums: jest.fn().mockResolvedValue({ items: [] }),
+        };
 
-        start();
-        await new Promise(resolve => process.nextTick(resolve)); // Wait for UI to update
+        await loadAlbumData(sourceContainer, destSelect);
 
-        const sourceSelect = document.querySelector('.gpf-source-album-select');
-        expect(sourceSelect.textContent).toBe('No albums found');
+        expect(sourceContainer.textContent).toBe('No albums found');
     });
 });
 
 describe('API - Core Processing', () => {
+    let ui;
+
     beforeEach(() => {
-        document.body.innerHTML = '';
-        // Mock the API for this suite
-        unsafeWindow.gptkApi = {
-            // Provide a mock album for selection, with the correct object structure
-            getAlbums: jest.fn().mockResolvedValue({ items: [{ mediaKey: 'album1', title: 'Test Album' }] }),
-            getAlbumMediaItems: jest.fn(),
-            getItemInfo: jest.fn(),
-        };
+        // Create a fresh UI for each test.
+        ui = createUI();
+        document.body.appendChild(ui);
     });
 
     afterEach(() => {
+        // Clean up the DOM.
+        document.body.innerHTML = '';
         jest.clearAllMocks();
     });
 
     test('should process items in batches and filter correctly', async () => {
-        // Acceptance criteria: The script must process items in batches and correctly filter them.
+        // Acceptance criteria: The core logic should fetch item details in batches and filter them.
+        const mockMediaItems = [
+            { id: 'item1' }, // Not saved
+            { id: 'item2' }, // Saved
+            { id: 'item3' }, // Not saved
+            { id: 'item4' }, // Saved
+        ];
 
-        // 1. Setup Mocks
-        const mockMediaItems = [ { id: 'item1' }, { id: 'item2' }, { id: 'item3' }, { id: 'item4' } ];
-        unsafeWindow.gptkApi.getAlbumMediaItems.mockResolvedValue(mockMediaItems);
+        const mockItemInfos = {
+            item1: { id: 'item1', savedToYourPhotos: false },
+            item2: { id: 'item2', savedToYourPhotos: true },
+            item3: { id: 'item3', savedToYourPhotos: false },
+            item4: { id: 'item4', savedToYourPhotos: true },
+        };
 
-        unsafeWindow.gptkApi.getItemInfo
-            .mockResolvedValueOnce({ id: 'item1', savedToYourPhotos: true })
-            .mockResolvedValueOnce({ id: 'item2', savedToYourPhotos: false })
-            .mockResolvedValueOnce({ id: 'item3', savedToYourPhotos: true })
-            .mockResolvedValueOnce({ id: 'item4', savedToYourPhotos: false });
+        // 1. Setup: Mock the API methods that will be called during processing.
+        unsafeWindow.gptkApi = {
+            getAlbumMediaItems: jest.fn().mockResolvedValue(mockMediaItems),
+            getItemInfo: jest.fn(itemId => Promise.resolve(mockItemInfos[itemId])),
+            getAlbums: jest.fn().mockResolvedValue({ items: [{ mediaKey: 'album1', title: 'My Album' }] }),
+        };
 
-        // 2. Setup UI State and wait for it to be ready
-        start();
-        const ui = document.body.firstChild;
+        // Load some albums first
+        const sourceContainer = ui.querySelector('.gpf-source-album-checklist');
+        const destSelect = ui.querySelector('.gpf-dest-album-select');
+        await loadAlbumData(sourceContainer, destSelect);
 
-        // We must wait for the async loadAlbumData to complete before proceeding.
-        // Awaiting a macrotask (like setTimeout) or microtask ensures the DOM has updated.
-        await new Promise(resolve => process.nextTick(resolve));
+        // 2. Setup: Set the UI state (e.g., select an album, set batch size).
+        sourceContainer.querySelector('input[value="album1"]').checked = true; // Simulate album selection
+        ui.querySelector('.gpf-batch-size-input').value = '2'; // Process in batches of 2
+        ui.querySelector('input[name="filter"][value="not-saved"]').checked = true; // Filter for not-saved items
 
-        const logWindow = ui.querySelector('.gpf-log-window');
-        const sourceSelect = ui.querySelector('.gpf-source-album-select');
-        const filterNotSaved = ui.querySelector('input[name="filter"][value="not-saved"]');
-        const batchSizeInput = ui.querySelector('.gpf-batch-size-input');
-
-        // Simulate user selections
-        const sourceOption = ui.querySelector('option[value="album1"]');
-        sourceOption.selected = true;
-        filterNotSaved.checked = true;
-        batchSizeInput.value = '2';
-
-        // 3. Action
+        // 3. Action: Run the processing function.
         const matchedItems = await startProcessing(ui);
 
         // 4. Assertions
@@ -137,14 +125,13 @@ describe('API - Core Processing', () => {
         expect(unsafeWindow.gptkApi.getItemInfo).toHaveBeenCalledTimes(4);
 
         // Check log window for correct progress updates
-        expect(logWindow.innerHTML).toContain('Processing batch 1 of 2...');
-        expect(logWindow.innerHTML).toContain('Processing batch 2 of 2...');
-        expect(logWindow.innerHTML).toContain('Scan complete. Found 2 matching items.');
+        const logWindow = ui.querySelector('.gpf-log-window');
+        expect(logWindow.textContent).toContain('Processing batch 1 of 2...');
+        expect(logWindow.textContent).toContain('Processing batch 2 of 2...');
+        expect(logWindow.textContent).toContain('Scan complete. Found 2 matching items.');
 
-        // Check that the final result is correct
-        expect(matchedItems).toEqual([
-            { id: 'item2', savedToYourPhotos: false },
-            { id: 'item4', savedToYourPhotos: false }
-        ]);
+        // Check the final result
+        expect(matchedItems).toHaveLength(2);
+        expect(matchedItems.map(item => item.id)).toEqual(['item1', 'item3']);
     });
 });
