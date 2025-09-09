@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Unsaved Finder
 // @namespace    http://tampermonkey.net/
-// @version      2025.09.08-1900
+// @version      2025.09.08-2240
 // @description  A userscript to find unsaved photos in Google Photos albums.
 // @author       Sherbeeny (via Jules the AI Agent)
 // @match        https://photos.google.com/*
@@ -254,9 +254,9 @@
             <div class="gpf-section-filters">
                 <label>Filter by:</label>
                 <div class="gpf-radio-group">
-                    <label><input type="radio" name="filter" value="any"> Any</label>
-                    <label><input type="radio" name="filter" value="saved"> Saved</label>
-                    <label><input type="radio" name="filter" value="not-saved" checked> Not Saved</label>
+                    <label><input type="radio" name="filter" value="any">Any</label>
+                    <label><input type="radio" name="filter" value="saved">Saved</label>
+                    <label><input type="radio" name="filter" value="not-saved" checked>Not Saved</label>
                 </div>
             </div>
             <div class="gpf-section-batch-size">
@@ -294,7 +294,7 @@
             .gpf-checklist-item label { order: 2; }
             .gpf-radio-group { display: flex; gap: 1.5rem; justify-content: flex-start; }
             .gpf-radio-group label { font-weight: normal; display: flex; align-items: center; gap: 0.5rem; }
-            .gpf-radio-group label input { order: 1; width: auto; }
+            .gpf-radio-group label input { width: auto; }
             .gpf-batch-size-input { max-width: 100px; }
             .gpf-log-window { height: 100px; overflow-y: scroll; border: 1px solid #dadce0; padding: 8px; text-align: left; font-size: 0.8rem; background: #f8f9fa; color: #3c4043; }
         `);

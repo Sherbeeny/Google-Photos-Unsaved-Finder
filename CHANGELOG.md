@@ -5,10 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2025.09.08-1900] - 2025-09-08
+## [2025.09.08-2240] - 2025-09-08
 
 ### Fixed
 - Corrected the alignment of radio buttons to have the button on the left and the label on the right.
+
+## [2025.09.08-1900] - 2025-09-08
+
+### Fixed
 - Corrected the alignment of checkboxes in the source album list to be on the left.
 - Adjusted the spacing of items in the source album checklist to be more compact.
 - Set the max-width of the batch size input to 100px.
