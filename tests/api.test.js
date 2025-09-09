@@ -22,6 +22,11 @@ describe('API - Album Loading', () => {
         document.body.appendChild(ui);
         sourceContainer = document.querySelector('.gpf-source-album-checklist');
         destSelect = document.querySelector('.gpf-dest-album-select');
+        unsafeWindow.gptkApi = {
+            getAlbums: jest.fn(),
+            getAlbumPage: jest.fn(),
+            getItemInfo: jest.fn(),
+        };
     });
 
     afterEach(() => {
@@ -33,9 +38,7 @@ describe('API - Album Loading', () => {
     test('should populate album checklist and show a loading state', async () => {
         // Acceptance criteria: The UI should indicate that albums are being loaded.
         const mockAlbums = { items: [{ mediaKey: 'album1', title: 'Test Album' }] };
-        unsafeWindow.gptkApi = {
-            getAlbums: jest.fn().mockResolvedValue(mockAlbums),
-        };
+        unsafeWindow.gptkApi.getAlbums.mockResolvedValue(mockAlbums);
 
         // The loadAlbumData function is async, so we can await its completion.
         const loadPromise = loadAlbumData(sourceContainer, destSelect);
@@ -59,9 +62,7 @@ describe('API - Album Loading', () => {
 
     test('should show "No albums found" if the API returns no albums', async () => {
         // Acceptance criteria: The UI should inform the user if no albums are available.
-        unsafeWindow.gptkApi = {
-            getAlbums: jest.fn().mockResolvedValue({ items: [] }),
-        };
+        unsafeWindow.gptkApi.getAlbums.mockResolvedValue({ items: [] });
 
         await loadAlbumData(sourceContainer, destSelect);
 
@@ -76,6 +77,11 @@ describe('API - Core Processing', () => {
         // Create a fresh UI for each test.
         ui = createUI();
         document.body.appendChild(ui);
+        unsafeWindow.gptkApi = {
+            getAlbums: jest.fn(),
+            getAlbumPage: jest.fn(),
+            getItemInfo: jest.fn(),
+        };
     });
 
     afterEach(() => {
@@ -101,11 +107,9 @@ describe('API - Core Processing', () => {
         };
 
         // 1. Setup: Mock the API methods that will be called during processing.
-        unsafeWindow.gptkApi = {
-            getAlbumMediaItems: jest.fn().mockResolvedValue(mockMediaItems),
-            getItemInfo: jest.fn(itemId => Promise.resolve(mockItemInfos[itemId])),
-            getAlbums: jest.fn().mockResolvedValue({ items: [{ mediaKey: 'album1', title: 'My Album' }] }),
-        };
+        unsafeWindow.gptkApi.getAlbumPage.mockResolvedValue({ items: mockMediaItems });
+        unsafeWindow.gptkApi.getItemInfo.mockImplementation(itemId => Promise.resolve(mockItemInfos[itemId]));
+        unsafeWindow.gptkApi.getAlbums.mockResolvedValue({ items: [{ mediaKey: 'album1', title: 'My Album' }] });
 
         // Load some albums first
         const sourceContainer = ui.querySelector('.gpf-source-album-checklist');
@@ -121,7 +125,7 @@ describe('API - Core Processing', () => {
         const matchedItems = await startProcessing(ui);
 
         // 4. Assertions
-        expect(unsafeWindow.gptkApi.getAlbumMediaItems).toHaveBeenCalledWith('album1');
+        expect(unsafeWindow.gptkApi.getAlbumPage).toHaveBeenCalledWith('album1');
         expect(unsafeWindow.gptkApi.getItemInfo).toHaveBeenCalledTimes(4);
 
         // Check log window for correct progress updates

@@ -63,7 +63,7 @@ describe('Userscript Metadata', () => {
     });
 
     test('should have a valid @version', () => {
-        expect(metadata.version).toBe('2025.09.08-2240');
+        expect(metadata.version).toBe('2025.09.09-1000');
     });
 
     test('should have a valid @description', () => {

@@ -5,19 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2025.09.08-2240] - 2025-09-08
-
-### Fixed
-- Corrected the alignment of radio buttons to have the button on the left and the label on the right.
-
-## [2025.09.08-1900] - 2025-09-08
-
-### Fixed
-- Corrected the alignment of checkboxes in the source album list to be on the left.
-- Adjusted the spacing of items in the source album checklist to be more compact.
-- Set the max-width of the batch size input to 100px.
-
-## [2025.09.08-1738] - 2025-09-08
+## [2025.09.09-1000] - 2025-09-09
 
 ### Added
 - Source albums list is now a checklist with a "Select All" option.
@@ -25,7 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Close button is now an SVG icon instead of a text "X".
 
 ### Changed
-- Radio buttons are now aligned with labels on the left and buttons on the right.
-- Batch size input box is now smaller.
-- Start button is now larger and right-aligned.
+- Radio buttons are now aligned with the button on the left and the label on the right.
+- The source albums checklist items are now more compact and vertically centered.
+- The source albums checklist height is now 100px.
+- The batch size input and its label are now on the same line.
+- The batch size input has a max-width of 100px.
+- The start button is now larger and right-aligned.
 - Increased spacing above the main title.
+- Removed trailing colons from all labels.
+
+### Fixed
+- Fixed a runtime bug where the script would crash because of an incorrect function name (`getAlbumMediaItems` instead of `getAlbumPage`).
+- Fixed a bug where the script would crash if a Trusted Types policy named 'default' already existed and `window.trustedTypes.policies` was undefined.

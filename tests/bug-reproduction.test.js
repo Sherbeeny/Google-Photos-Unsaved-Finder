@@ -7,7 +7,7 @@ global.GM_registerMenuCommand = jest.fn();
 global.GM_info = { script: { version: 'test-version' } };
 global.unsafeWindow = {};
 
-const { start, loadAlbumData } = require('../src/google_photos_unsaved_finder.user.js');
+const { start, loadAlbumData, startProcessing } = require('../src/google_photos_unsaved_finder.user.js');
 
 describe('Bug Reproduction Tests', () => {
 
@@ -16,7 +16,8 @@ describe('Bug Reproduction Tests', () => {
         // Mock the gptkApi for each test
         unsafeWindow.gptkApi = {
             getAlbums: jest.fn(),
-            loadAlbumData: jest.fn(), // Mocking the function that will be called inside start()
+            getAlbumPage: jest.fn(),
+            getItemInfo: jest.fn(),
         };
         // Spy on console.error to check for logging
         jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -78,5 +79,27 @@ describe('Bug Reproduction Tests', () => {
 
         const label = sourceChecklist.querySelector('label[for="gpf-album-key1"]');
         expect(label.textContent).toBe('Album One');
+    });
+
+    test('[TDD Red] Bug: Incorrect getAlbumMediaItems function name', async () => {
+        // Acceptance Criteria: The script must call the correct GPTK API function to get album media.
+
+        // 1. Setup: Mock the gptkApi with the correct function name
+        unsafeWindow.gptkApi.getAlbumPage.mockResolvedValue({ items: [] });
+        unsafeWindow.gptkApi.getAlbums.mockResolvedValue({ items: [{ mediaKey: 'album1', title: 'My Album' }] });
+
+        // 2. Action: Start the UI and the processing.
+        start();
+        await new Promise(resolve => process.nextTick(resolve)); // Wait for albums to load
+
+        const ui = document.querySelector('.gpf-window');
+        const sourceChecklist = ui.querySelector('.gpf-source-album-checklist');
+        sourceChecklist.querySelector('input[value="album1"]').checked = true;
+
+        const startButton = ui.querySelector('.gpf-start-button');
+
+        await startProcessing(ui);
+
+        expect(unsafeWindow.gptkApi.getAlbumPage).toHaveBeenCalledWith('album1');
     });
 });
