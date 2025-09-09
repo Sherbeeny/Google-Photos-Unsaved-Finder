@@ -101,7 +101,7 @@ describe('API - Core Processing', () => {
 
         const mockItemInfos = {
             item1: { id: 'item1', savedToYourPhotos: false },
-            item2: { id: 'item2', savedToYourPhotos: true },
+            item2: null, // Simulate a null response
             item3: { id: 'item3', savedToYourPhotos: false },
             item4: { id: 'item4', savedToYourPhotos: true },
         };
