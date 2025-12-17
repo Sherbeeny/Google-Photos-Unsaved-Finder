@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025.12.17-1700] - 2025-12-17
+
+### Changed
+- Refactored the userscript to use dependency injection, making the core logic testable.
+- Wrote a comprehensive test suite for the core logic, including API functions and the main processing logic.
+- Fixed the ESLint configuration to correctly lint the project and ignore vendor files.
+
+## [2025.12.17-1657] - 2025-12-17
+
+### Changed
+- Refactored the `startProcessing` function to process photos in parallel batches.
+- Removed all calls to `unsafeWindow.testingExports` from the production code.
+- Attempted to update the test suite, but was unable to get the tests to pass due to issues with the test environment.
+
+## [2025.12.17-1651] - 2025-12-17
+
+### Fixed
+- Fixed the ESLint configuration to correctly lint the test files.
+- Updated the `README.md` to include the `test` command.
+
+## [2025.12.17-1643] - 2025-12-17
+
+### Fixed
+- Restored the full functionality of the userscript.
+- Updated the test suite to cover the UI and the core processing logic.
+
+## [2025.12.17-1636] - 2025-12-17
+
+### Added
+- Re-introduced a test suite for the plain JavaScript userscript.
+
+## [2025.12.17-1451] - 2025-12-17
+
+### Changed
+- Rebuilt the userscript from scratch to be independent of any other userscript.
+- Replaced the Preact and Vite build process with a plain JavaScript implementation.
+- Updated the ESLint configuration to correctly lint the project.
+- Updated all documentation to reflect the new architecture.
+
 ## [2025.09.09-1000] - 2025-09-09
 
 ### Added

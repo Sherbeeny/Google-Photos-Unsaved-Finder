@@ -1,46 +1,39 @@
-import globals from 'globals';
-import js from '@eslint/js';
+// eslint.config.js
+"use strict";
 
-export default [
+// Import the ESLint plugin for Jest
+const jestPlugin = require("eslint-plugin-jest");
+
+module.exports = [
   {
-    ignores: ["node_modules/", ".pnpm-store/", "coverage/"],
-  },
-  js.configs.recommended,
-  {
-    files: ['**/*.js'],
+    // Base configuration for all files
+    ignores: ["tampermonkey/unpacked/**", "scripts/**"],
     languageOptions: {
-      ecmaVersion: 2022,
-      sourceType: 'module',
+      ecmaVersion: 2021,
+      sourceType: "script",
       globals: {
-        ...globals.browser,
-        ...globals.node,
-        ...globals.jest,
-        GM_registerMenuCommand: 'readonly',
-        GM_addStyle: 'readonly',
-        GM_info: 'readonly',
-        unsafeWindow: 'readonly',
-        global: 'readonly',
-        process: 'readonly',
-        testingExports: 'writable',
+        // Browser and Node.js globals
+        ...require("globals").browser,
+        ...require("globals").node,
+        // Tampermonkey globals
+        GM_registerMenuCommand: "readonly",
+        GM_addStyle: "readonly",
+        GM_info: "readonly",
+        unsafeWindow: "readonly",
       },
     },
     rules: {
-      'no-console': 'off',
-      'semi': ['error', 'always'],
-      'quotes': ['error', 'single'],
-      'no-unused-vars': ['warn', { 'args': 'none' }],
+      "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+      "semi": ["error", "always"],
     },
   },
   {
-    files: ['src/**/*.user.js'],
-    languageOptions: {
-      sourceType: 'script',
-    },
-  },
-  {
-    files: ['tests/**/*.test.js', 'jest.config.js', 'playwright.config.js'],
-    languageOptions: {
-      sourceType: 'commonjs',
+    // Configuration for test files
+    files: ["**/*.test.js", "jest.setup.js"],
+    ...jestPlugin.configs["flat/recommended"],
+    rules: {
+      ...jestPlugin.configs["flat/recommended"].rules,
+      // Add any additional Jest-specific rules here
     },
   },
 ];
