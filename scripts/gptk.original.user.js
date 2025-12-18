@@ -1074,7 +1074,7 @@
     return new Promise((resolve) => setTimeout(() => resolve(fn()), 0));
   }
 
-  /* eslint-disable no-undef */
+
   const windowGlobalData = {
     rapt: unsafeWindow.WIZ_global_data.Dbw5Ud,
     account: unsafeWindow.WIZ_global_data.oPEP7c,
@@ -2988,9 +2988,9 @@
     filterPreviewUpdate();
   }
 
-  // eslint-disable-next-line no-undef
+
   const version = `v${"2.10.0"}`;
-  // eslint-disable-next-line no-undef
+
   const homepage = "https://github.com/xob0t/Google-Photos-Toolkit#readme";
 
   function htmlTemplatePrep(gptkMainTemplate) {
@@ -3421,7 +3421,7 @@
 
   function registerMenuCommand() {
     // Register a new menu command
-    // eslint-disable-next-line no-undef
+
     GM_registerMenuCommand('Open GPTK window', function () {
       showMainMenu();
     });
