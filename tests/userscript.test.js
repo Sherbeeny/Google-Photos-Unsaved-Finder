@@ -187,10 +187,13 @@ describe('Userscript Core Logic', () => {
     });
 
     // --- Testing UI Creation (basic) ---
-    it('should create the basic UI structure', () => {
+    it('should create the full UI structure programmatically', async () => {
         // Mock the getAlbums call that createUI depends on
         const mockAlbumData = [[["album_id_1", ["thumbnail_url_1"], null, null, null, null, ["owner_id_1"], {"72930366":[null,"Test Album 1",null,123,false]}]]];
-        global.fetch.mockResolvedValueOnce(createMockApiResponse('Z5xsfc', mockAlbumData));
+        const mockApiResponse = createMockApiResponse('Z5xsfc', mockAlbumData);
+
+        // JSDOM's fetch is not the same as the global fetch, so we mock it specifically here.
+        global.fetch = jest.fn(() => Promise.resolve(mockApiResponse));
 
         // Mock Tampermonkey functions for this test
         global.GM_addStyle = jest.fn();
@@ -198,7 +201,26 @@ describe('Userscript Core Logic', () => {
 
         userscript.createUI();
 
+        // Allow for the async getAlbums call to complete
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        // Check for all major UI components
+        expect(document.querySelector('.gpuf-modal-overlay')).not.toBeNull();
         expect(document.querySelector('.gpuf-modal')).not.toBeNull();
+        expect(document.querySelector('.gpuf-modal-header h2')).not.toBeNull();
+        expect(document.querySelector('.gpuf-close-button')).not.toBeNull();
+        expect(document.querySelector('.gpuf-album-list')).not.toBeNull();
+        expect(document.querySelector('.gpuf-filter-controls')).not.toBeNull();
+        expect(document.querySelectorAll('input[name="filter"]').length).toBe(3);
+        expect(document.querySelector('.gpuf-destination-controls')).not.toBeNull();
+        expect(document.querySelector('#destination-album')).not.toBeNull();
         expect(document.querySelector('.gpuf-start-button')).not.toBeNull();
+        expect(document.querySelector('.gpuf-log-viewer')).not.toBeNull();
+
+        // Check that the album list was populated
+        expect(document.querySelectorAll('.gpuf-album-list label').length).toBe(1);
+        expect(document.querySelector('.gpuf-album-list label').textContent).toContain('Test Album 1');
+        expect(document.querySelectorAll('#destination-album option').length).toBe(1);
+        expect(document.querySelector('#destination-album option').textContent).toBe('Test Album 1');
     });
 });

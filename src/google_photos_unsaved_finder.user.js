@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Unsaved Finder
 // @namespace    http://tampermonkey.net/
-// @version      2025.12.18-1531
+// @version      2025.12.18-1557
 // @description  A userscript to find unsaved photos in Google Photos albums.
 // @author       Sherbeeny (via Jules the AI Agent)
 // @match        https://photos.google.com/*
@@ -199,25 +199,85 @@
 
     // --- UI Layer (Remains coupled to the DOM and Tampermonkey) ---
     function createUI() {
-      const container = document.createElement('div');
-      container.innerHTML = `
-        <div class="gpuf-modal-overlay">
-          <div class="gpuf-modal">
-            <div class="gpuf-modal-header"><h2>Google Photos Unsaved Finder</h2><button class="gpuf-close-button">&times;</button></div>
-            <div class="gpuf-modal-content">
-              <div class="gpuf-album-list"></div>
-              <div class="gpuf-filter-controls">
-                <label><input type="radio" name="filter" value="any" /> Any</label>
-                <label><input type="radio" name="filter" value="saved" /> Saved</label>
-                <label><input type="radio" name="filter" value="not-saved" checked /> Not Saved</label>
-              </div>
-              <div class="gpuf-destination-controls"><label for="destination-album">Destination Album</label><select id="destination-album"></select></div>
-              <button class="gpuf-start-button">Start</button>
-              <div class="gpuf-log-viewer"></div>
-            </div>
-          </div>
-        </div>`;
-      document.body.appendChild(container);
+      // Create elements programmatically to comply with TrustedHTML
+      const overlay = document.createElement('div');
+      overlay.className = 'gpuf-modal-overlay';
+
+      const modal = document.createElement('div');
+      modal.className = 'gpuf-modal';
+
+      const header = document.createElement('div');
+      header.className = 'gpuf-modal-header';
+
+      const title = document.createElement('h2');
+      title.textContent = 'Google Photos Unsaved Finder';
+
+      const closeButton = document.createElement('button');
+      closeButton.className = 'gpuf-close-button';
+      closeButton.innerHTML = '&times;'; // Using innerHTML for a simple times symbol is generally safe.
+
+      header.appendChild(title);
+      header.appendChild(closeButton);
+
+      const content = document.createElement('div');
+      content.className = 'gpuf-modal-content';
+
+      const albumList = document.createElement('div');
+      albumList.className = 'gpuf-album-list';
+
+      const filterControls = document.createElement('div');
+      filterControls.className = 'gpuf-filter-controls';
+
+      const filters = [
+        { value: 'any', text: ' Any' },
+        { value: 'saved', text: ' Saved' },
+        { value: 'not-saved', text: ' Not Saved', checked: true }
+      ];
+
+      filters.forEach(filter => {
+        const label = document.createElement('label');
+        const input = document.createElement('input');
+        input.type = 'radio';
+        input.name = 'filter';
+        input.value = filter.value;
+        if (filter.checked) input.checked = true;
+        label.appendChild(input);
+        label.appendChild(document.createTextNode(filter.text));
+        filterControls.appendChild(label);
+      });
+
+      const destinationControls = document.createElement('div');
+      destinationControls.className = 'gpuf-destination-controls';
+
+      const destinationLabel = document.createElement('label');
+      destinationLabel.htmlFor = 'destination-album';
+      destinationLabel.textContent = 'Destination Album';
+
+      const destinationSelect = document.createElement('select');
+      destinationSelect.id = 'destination-album';
+
+      destinationControls.appendChild(destinationLabel);
+      destinationControls.appendChild(destinationSelect);
+
+      const startButton = document.createElement('button');
+      startButton.className = 'gpuf-start-button';
+      startButton.textContent = 'Start';
+
+      const logViewer = document.createElement('div');
+      logViewer.className = 'gpuf-log-viewer';
+
+      content.appendChild(albumList);
+      content.appendChild(filterControls);
+      content.appendChild(destinationControls);
+      content.appendChild(startButton);
+      content.appendChild(logViewer);
+
+      modal.appendChild(header);
+      modal.appendChild(content);
+      overlay.appendChild(modal);
+
+      document.body.appendChild(overlay);
+
 
       // In a real userscript, GM_addStyle would be used. For testing, this is a no-op.
       if (typeof GM_addStyle === 'function') {
@@ -259,11 +319,8 @@
         `);
       }
 
-      container.querySelector('.gpuf-close-button').addEventListener('click', () => container.remove());
+      closeButton.addEventListener('click', () => overlay.remove());
 
-      const albumList = container.querySelector('.gpuf-album-list');
-      const destinationList = container.querySelector('#destination-album');
-      const logViewer = container.querySelector('.gpuf-log-viewer');
       const log = (message) => {
         const logEntry = document.createElement('div');
         logEntry.textContent = message;
@@ -273,25 +330,30 @@
 
       const getUiState = () => ({
         selectedAlbums: Array.from(albumList.querySelectorAll('input:checked')).map(input => input.value),
-        filter: document.querySelector('input[name="filter"]:checked').value,
-        destination: destinationList.value,
+        filter: filterControls.querySelector('input[name="filter"]:checked').value,
+        destination: destinationSelect.value,
       });
 
       // Here, we inject the real browser 'fetch' and window data into the core logic.
       getAlbums(fetch, getWindowGlobalData()).then(albums => {
         albums.forEach(album => {
-          const albumEl = document.createElement('div');
-          albumEl.innerHTML = `<label><input type="checkbox" value="${album.mediaKey}" /> ${album.title}</label>`;
-          albumList.appendChild(albumEl);
+          const label = document.createElement('label');
+          const input = document.createElement('input');
+          input.type = 'checkbox';
+          input.value = album.mediaKey;
+          label.appendChild(input);
+          label.appendChild(document.createTextNode(` ${album.title}`));
+          albumList.appendChild(label);
+
 
           const optionEl = document.createElement('option');
           optionEl.value = album.mediaKey;
           optionEl.textContent = album.title;
-          destinationList.appendChild(optionEl);
+          destinationSelect.appendChild(optionEl);
         });
       });
 
-      container.querySelector('.gpuf-start-button').addEventListener('click', () => startProcessing(fetch, getWindowGlobalData(), log, getUiState));
+      startButton.addEventListener('click', () => startProcessing(fetch, getWindowGlobalData(), log, getUiState));
     }
 
     function start() {
