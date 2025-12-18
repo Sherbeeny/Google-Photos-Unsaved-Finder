@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Unsaved Finder
 // @namespace    http://tampermonkey.net/
-// @version      2025.12.18-1605
+// @version      2025.12.18-1622
 // @description  A userscript to find unsaved photos in Google Photos albums.
 // @author       Sherbeeny (via Jules the AI Agent)
 // @match        https://photos.google.com/*
@@ -99,10 +99,12 @@
       try {
         const response = await makeApiRequest(fetch, windowGlobalData, rpcid, requestData);
         const parsed = parser(response, rpcid);
-        return parsed ? parsed.items : [];
+        if (parsed && parsed.items) {
+          return { success: true, data: parsed.items };
+        }
+        return { success: false, error: 'Failed to parse album data.', data: response };
       } catch (error) {
-        console.error('Error in getAlbums:', error);
-        throw error;
+        return { success: false, error: error.message };
       }
     }
 
@@ -111,10 +113,13 @@
       const requestData = [albumMediaKey, pageId, null, null];
       try {
         const response = await makeApiRequest(fetch, windowGlobalData, rpcid, requestData);
-        return parser(response, rpcid);
+        const parsed = parser(response, rpcid);
+        if (parsed) {
+          return { success: true, data: parsed };
+        }
+        return { success: false, error: 'Failed to parse album page data.', data: response };
       } catch (error) {
-        console.error('Error in getAlbumPage:', error);
-        throw error;
+        return { success: false, error: error.message };
       }
     }
 
@@ -123,10 +128,13 @@
       const requestData = [mediaKey, null, null, null, null];
       try {
         const response = await makeApiRequest(fetch, windowGlobalData, rpcid, requestData);
-        return parser(response, rpcid);
+        const parsed = parser(response, rpcid);
+        if (parsed) {
+          return { success: true, data: parsed };
+        }
+        return { success: false, error: 'Failed to parse item info.', data: response };
       } catch (error) {
-        console.error('Error in getItemInfo:', error);
-        throw error;
+        return { success: false, error: error.message };
       }
     }
 
@@ -135,11 +143,12 @@
       const requestData = [albumMediaKey, [2, null, mediaKeyArray.map((id) => [[id]]), null, null, null, [1]]];
       try {
         const response = await makeApiRequest(fetch, windowGlobalData, rpcid, requestData);
-        // A successful response should be a non-empty array. A silent failure might return null or an empty array.
-        return Array.isArray(response) && response.length > 0;
+        if (Array.isArray(response) && response.length > 0) {
+          return { success: true, data: response };
+        }
+        return { success: false, error: 'API returned an unexpected response.', data: response };
       } catch (error) {
-        console.error('Error in addItemsToAlbum:', error);
-        return false; // Treat network errors as a failure.
+        return { success: false, error: error.message };
       }
     }
 
@@ -150,34 +159,37 @@
         if (!destination) { log('No destination album selected.'); return; }
 
         log('Starting processing...');
-        let totalItems = 0;
         const allMediaItems = [];
 
         for (const albumId of selectedAlbums) {
-          log(`Fetching media items from album ${albumId}...`);
-          let page = await getAlbumPage(fetch, windowGlobalData, albumId);
-          while (page && page.items) {
-            totalItems += page.items.length;
-            allMediaItems.push(...page.items);
-            if (page.nextPageId) {
-              page = await getAlbumPage(fetch, windowGlobalData, albumId, page.nextPageId);
-            } else {
-              break;
-            }
-          }
-          log(`Found ${totalItems} items in album.`);
+            log(`Fetching media items from album ${albumId}...`);
+            let nextPageId = null;
+            do {
+                const pageResult = await getAlbumPage(fetch, windowGlobalData, albumId, nextPageId);
+                if (!pageResult.success) {
+                    log(`Error fetching page from album ${albumId}: ${pageResult.error}. Response: ${JSON.stringify(pageResult.data)}`);
+                    break;
+                }
+                allMediaItems.push(...pageResult.data.items);
+                nextPageId = pageResult.data.nextPageId;
+            } while (nextPageId);
+            log(`Found ${allMediaItems.length} total items in album.`);
         }
-        log(`Found ${totalItems} total items across all selected albums.`);
+        log(`Found ${allMediaItems.length} total items across all selected albums.`);
 
         const matchedItems = [];
         const batchSize = 20;
         for (let i = 0; i < allMediaItems.length; i += batchSize) {
             const batch = allMediaItems.slice(i, i + batchSize);
             const promises = batch.map(item => getItemInfo(fetch, windowGlobalData, item.mediaKey));
-            const itemInfos = await Promise.all(promises);
+            const itemInfoResults = await Promise.all(promises);
 
-            for (const info of itemInfos) {
-                if (!info) continue;
+            for (const result of itemInfoResults) {
+                if (!result.success) {
+                    log(`Error getting item info: ${result.error}. Response: ${JSON.stringify(result.data)}`);
+                    continue;
+                }
+                const info = result.data;
                 let match = false;
                 if (filter === 'saved' && info.savedToYourPhotos) match = true;
                 if (filter === 'not-saved' && !info.savedToYourPhotos) match = true;
@@ -186,14 +198,15 @@
             }
         }
         log(`Found ${matchedItems.length} matching items.`);
+
         if (matchedItems.length > 0) {
-          log(`Adding ${matchedItems.length} items to destination album...`);
-          const success = await addItemsToAlbum(fetch, windowGlobalData, matchedItems, destination);
-          if (success) {
-            log('Successfully added items to the album.');
-          } else {
-            log('Error: Failed to add items to the album. The API returned an unexpected response.');
-          }
+            log(`Adding ${matchedItems.length} items to destination album...`);
+            const addResult = await addItemsToAlbum(fetch, windowGlobalData, matchedItems, destination);
+            if (addResult.success) {
+                log('Successfully added items to the album.');
+            } else {
+                log(`Error: Failed to add items to the album. ${addResult.error}. Response: ${JSON.stringify(addResult.data)}`);
+            }
         }
     }
 
@@ -335,10 +348,11 @@
       });
 
       // Here, we inject the real browser 'fetch' and window data into the core logic.
-      getAlbums(fetch, getWindowGlobalData()).then(albums => {
-        albums.forEach(album => {
-          const label = document.createElement('label');
-          const input = document.createElement('input');
+      getAlbums(fetch, getWindowGlobalData()).then(result => {
+        if (result.success) {
+          result.data.forEach(album => {
+            const label = document.createElement('label');
+            const input = document.createElement('input');
           input.type = 'checkbox';
           input.value = album.mediaKey;
           label.appendChild(input);
@@ -351,6 +365,7 @@
           optionEl.textContent = album.title;
           destinationSelect.appendChild(optionEl);
         });
+        }
       });
 
       startButton.addEventListener('click', () => startProcessing(fetch, getWindowGlobalData(), log, getUiState));
