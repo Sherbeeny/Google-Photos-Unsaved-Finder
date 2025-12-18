@@ -37,6 +37,7 @@
       return {
         mediaKey: itemData?.[0],
         title: itemData?.at(-1)?.[72930366]?.[1],
+        isShared: itemData?.at(-1)?.[72930366]?.[4] || false,
       };
     }
 
@@ -138,12 +139,13 @@
       }
     }
 
-    async function addItemsToAlbum(fetch, windowGlobalData, sourcePath, mediaKeyArray, albumMediaKey) {
+    async function addItemsToSharedAlbum(fetch, windowGlobalData, sourcePath, mediaKeyArray, albumMediaKey) {
       const rpcid = 'laUYf';
       const requestData = [albumMediaKey, [2, null, mediaKeyArray.map((id) => [[id]]), null, null, null, [1]]];
       try {
         const response = await makeApiRequest(fetch, windowGlobalData, rpcid, requestData, sourcePath);
-        if (Array.isArray(response) && response.length > 0) {
+        // A null response from this RPCID indicates success.
+        if (response === null) {
           return { success: true, data: response };
         }
         return { success: false, error: 'API returned an unexpected response.', data: response };
@@ -152,11 +154,25 @@
       }
     }
 
+    async function addItemsToNonSharedAlbum(fetch, windowGlobalData, sourcePath, mediaKeyArray, albumMediaKey) {
+      const rpcid = 'E1Cajb';
+      const requestData = [mediaKeyArray, albumMediaKey];
+      try {
+        const response = await makeApiRequest(fetch, windowGlobalData, rpcid, requestData, sourcePath);
+        if (Array.isArray(response) && response.length > 0) {
+          return { success: true, data: response };
+        }
+        return { success: false, error: 'API returned an unexpected response for non-shared album.', data: response };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    }
+
     async function startProcessing(fetch, windowGlobalData, sourcePath, log, getUiState) {
-        const { selectedAlbums, filter, destination } = getUiState();
+        const { selectedAlbums, filter, destinationAlbum } = getUiState();
 
         if (selectedAlbums.length === 0) { log('No source albums selected.'); return; }
-        if (!destination) { log('No destination album selected.'); return; }
+        if (!destinationAlbum) { log('No destination album selected.'); return; }
 
         log('Starting processing...');
         const allMediaItems = [];
@@ -201,7 +217,16 @@
 
         if (matchedItems.length > 0) {
             log(`Adding ${matchedItems.length} items to destination album...`);
-            const addResult = await addItemsToAlbum(fetch, windowGlobalData, sourcePath, matchedItems, destination);
+
+            let addResult;
+            if (destinationAlbum.isShared) {
+                log('Destination is a shared album.');
+                addResult = await addItemsToSharedAlbum(fetch, windowGlobalData, sourcePath, matchedItems, destinationAlbum.mediaKey);
+            } else {
+                log('Destination is a non-shared album.');
+                addResult = await addItemsToNonSharedAlbum(fetch, windowGlobalData, sourcePath, matchedItems, destinationAlbum.mediaKey);
+            }
+
             if (addResult.success) {
                 log('Successfully added items to the album.');
             } else {
@@ -341,16 +366,24 @@
         logViewer.scrollTop = logViewer.scrollHeight;
       };
 
-      const getUiState = () => ({
-        selectedAlbums: Array.from(albumList.querySelectorAll('input:checked')).map(input => input.value),
-        filter: filterControls.querySelector('input[name="filter"]:checked').value,
-        destination: destinationSelect.value,
-      });
+      const albumsCache = []; // Store full album objects
+
+      const getUiState = () => {
+        const selectedDestinationOption = destinationSelect.options[destinationSelect.selectedIndex];
+        const destinationAlbum = selectedDestinationOption ? albumsCache.find(a => a.mediaKey === selectedDestinationOption.value) : null;
+
+        return {
+            selectedAlbums: Array.from(albumList.querySelectorAll('input:checked')).map(input => input.value),
+            filter: filterControls.querySelector('input[name="filter"]:checked').value,
+            destinationAlbum: destinationAlbum,
+        };
+      };
 
       const sourcePath = window.location.pathname;
       // Here, we inject the real browser 'fetch' and window data into the core logic.
       getAlbums(fetch, getWindowGlobalData(), sourcePath).then(result => {
         if (result.success) {
+          albumsCache.push(...result.data); // Cache the full album objects
           result.data.forEach(album => {
             const label = document.createElement('label');
             const input = document.createElement('input');
@@ -382,7 +415,8 @@
             getAlbums,
             getAlbumPage,
             getItemInfo,
-            addItemsToAlbum,
+            addItemsToSharedAlbum,
+            addItemsToNonSharedAlbum,
             startProcessing,
             createUI, // We can still test parts of the UI setup
             start,

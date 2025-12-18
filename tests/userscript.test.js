@@ -33,7 +33,7 @@ describe('Userscript Core Logic', () => {
 
     // --- Testing API Functions ---
     it('should fetch albums correctly', async () => {
-        const mockAlbumData = [[["album_id_1", ["thumbnail_url_1"], null, null, null, null, ["owner_id_1"], {"72930366":[null,"Test Album 1",null,123,false]}]]];
+        const mockAlbumData = [[["album_id_1", ["thumbnail_url_1"], null, null, null, null, ["owner_id_1"], {"72930366":[null,"Test Album 1",null,123,true]}]]];
         mockFetch.mockResolvedValueOnce(createMockApiResponse('Z5xsfc', mockAlbumData));
 
         const result = await userscript.getAlbums(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname);
@@ -89,10 +89,22 @@ describe('Userscript Core Logic', () => {
         expect(result.error).toBe('Network error');
     });
 
-    it('should add items to an album', async () => {
-        mockFetch.mockResolvedValueOnce(createMockApiResponse('laUYf', [1]));
+    it('should add items to a shared album', async () => {
+        mockFetch.mockResolvedValueOnce(createMockApiResponse('laUYf', null));
 
-        const result = await userscript.addItemsToAlbum(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, ['photo_1'], 'album_id_2');
+        const result = await userscript.addItemsToSharedAlbum(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, ['photo_1'], 'album_id_2');
+
+        expect(mockFetch).toHaveBeenCalled();
+        expect(result.success).toBe(true);
+        const requestBody = mockFetch.mock.calls[0][1].body;
+        expect(requestBody).toContain('photo_1');
+        expect(requestBody).toContain('album_id_2');
+    });
+
+    it('should add items to a non-shared album', async () => {
+        mockFetch.mockResolvedValueOnce(createMockApiResponse('E1Cajb', [1]));
+
+        const result = await userscript.addItemsToNonSharedAlbum(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, ['photo_1'], 'album_id_2');
 
         expect(mockFetch).toHaveBeenCalled();
         expect(result.success).toBe(true);
@@ -103,18 +115,18 @@ describe('Userscript Core Logic', () => {
 
     it('should handle errors when adding items to an album', async () => {
         mockFetch.mockRejectedValueOnce(new Error('Network error'));
-        const result = await userscript.addItemsToAlbum(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, ['photo_1'], 'album_id_2');
+        const result = await userscript.addItemsToSharedAlbum(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, ['photo_1'], 'album_id_2');
         expect(result.success).toBe(false);
         expect(result.error).toBe('Network error');
     });
 
     // --- Testing the main processing function ---
-    it('should execute the full processing logic', async () => {
+    it('should execute the full processing logic for a shared album', async () => {
         const log = jest.fn();
         const getUiState = () => ({
             selectedAlbums: ['album_id_1'],
             filter: 'not-saved',
-            destination: 'album_id_2',
+            destinationAlbum: { mediaKey: 'album_id_2', isShared: true },
         });
 
         // Mock the sequence of fetch calls
@@ -126,7 +138,7 @@ describe('Userscript Core Logic', () => {
             .mockResolvedValueOnce(createMockApiResponse('snAcKc', albumPageData)) // getAlbumPage
             .mockResolvedValueOnce(createMockApiResponse('VrseUb', itemInfoUnsaved)) // getItemInfo for photo 1
             .mockResolvedValueOnce(createMockApiResponse('VrseUb', itemInfoSaved))   // getItemInfo for photo 2
-            .mockResolvedValueOnce(createMockApiResponse('laUYf', [1])); // addItemsToAlbum
+            .mockResolvedValueOnce(createMockApiResponse('laUYf', null)); // addItemsToSharedAlbum
 
         await userscript.startProcessing(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, log, getUiState);
 
@@ -140,6 +152,41 @@ describe('Userscript Core Logic', () => {
         const lastFetchCall = mockFetch.mock.calls[mockFetch.mock.calls.length - 1];
         const requestBody = lastFetchCall[1].body;
         expect(requestBody).toContain('laUYf');
+        expect(requestBody).toContain('photo_1_unsaved'); // Only the unsaved photo should be added
+        expect(requestBody).not.toContain('photo_2_saved');
+    });
+
+    it('should execute the full processing logic for a non-shared album', async () => {
+        const log = jest.fn();
+        const getUiState = () => ({
+            selectedAlbums: ['album_id_1'],
+            filter: 'not-saved',
+            destinationAlbum: { mediaKey: 'album_id_2', isShared: false },
+        });
+
+        // Mock the sequence of fetch calls
+        const albumPageData = [null, [['photo_1_unsaved'], ['photo_2_saved']]];
+        const itemInfoUnsaved = [ ['photo_1_unsaved', null, null, null, null, null, null, null, null, null, null, null, null, null, null, {'163238866': []}] ];
+        const itemInfoSaved = [ ['photo_2_saved', null, null, null, null, null, null, null, null, null, null, null, null, null, null, {'163238866': [true]}] ];
+
+        mockFetch
+            .mockResolvedValueOnce(createMockApiResponse('snAcKc', albumPageData)) // getAlbumPage
+            .mockResolvedValueOnce(createMockApiResponse('VrseUb', itemInfoUnsaved)) // getItemInfo for photo 1
+            .mockResolvedValueOnce(createMockApiResponse('VrseUb', itemInfoSaved))   // getItemInfo for photo 2
+            .mockResolvedValueOnce(createMockApiResponse('E1Cajb', [1])); // addItemsToNonSharedAlbum
+
+        await userscript.startProcessing(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, log, getUiState);
+
+        // Check logs
+        expect(log).toHaveBeenCalledWith('Starting processing...');
+        expect(log).toHaveBeenCalledWith('Found 1 matching items.');
+        expect(log).toHaveBeenCalledWith('Adding 1 items to destination album...');
+        expect(log).toHaveBeenCalledWith('Successfully added items to the album.');
+
+        // Verify the final API call to add items
+        const lastFetchCall = mockFetch.mock.calls[mockFetch.mock.calls.length - 1];
+        const requestBody = lastFetchCall[1].body;
+        expect(requestBody).toContain('E1Cajb');
         expect(requestBody).toContain('photo_1_unsaved'); // Only the unsaved photo should be added
         expect(requestBody).not.toContain('photo_2_saved');
     });
@@ -175,7 +222,7 @@ describe('Userscript Core Logic', () => {
         const getUiState = () => ({
             selectedAlbums: ['album_id_1'],
             filter: 'not-saved',
-            destination: 'album_id_2',
+            destinationAlbum: { mediaKey: 'album_id_2', isShared: true },
         });
 
         // Mock the sequence of fetch calls
@@ -185,7 +232,7 @@ describe('Userscript Core Logic', () => {
         mockFetch
             .mockResolvedValueOnce(createMockApiResponse('snAcKc', albumPageData)) // getAlbumPage
             .mockResolvedValueOnce(createMockApiResponse('VrseUb', itemInfoUnsaved)) // getItemInfo for photo 1
-            .mockResolvedValueOnce(createMockApiResponse('laUYf', [])); // addItemsToAlbum -> SILENT FAILURE
+            .mockResolvedValueOnce(createMockApiResponse('laUYf', [])); // addItemsToSharedAlbum -> SILENT FAILURE
 
         await userscript.startProcessing(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, log, getUiState);
 
@@ -198,7 +245,7 @@ describe('Userscript Core Logic', () => {
     // --- Testing UI Creation (basic) ---
     it('should create the full UI structure programmatically', async () => {
         // Mock the getAlbums call that createUI depends on
-        const mockAlbumData = [[["album_id_1", ["thumbnail_url_1"], null, null, null, null, ["owner_id_1"], {"72930366":[null,"Test Album 1",null,123,false]}]]];
+        const mockAlbumData = [[["album_id_1", ["thumbnail_url_1"], null, null, null, null, ["owner_id_1"], {"72930366":[null,"Test Album 1",null,123,true]}]]];
         const mockApiResponse = createMockApiResponse('Z5xsfc', mockAlbumData);
 
         // JSDOM's fetch is not the same as the global fetch, so we mock it specifically here.
