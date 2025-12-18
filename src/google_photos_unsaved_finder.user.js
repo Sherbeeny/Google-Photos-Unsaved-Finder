@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Unsaved Finder
 // @namespace    http://tampermonkey.net/
-// @version      2025.12.18-1346
+// @version      2025.12.18-1531
 // @description  A userscript to find unsaved photos in Google Photos albums.
 // @author       Sherbeeny (via Jules the AI Agent)
 // @match        https://photos.google.com/*
@@ -130,14 +130,16 @@
       }
     }
 
-    async function addItemsToSharedAlbum(fetch, windowGlobalData, mediaKeyArray, albumMediaKey) {
+    async function addItemsToAlbum(fetch, windowGlobalData, mediaKeyArray, albumMediaKey) {
       const rpcid = 'laUYf';
       const requestData = [albumMediaKey, [2, null, mediaKeyArray.map((id) => [[id]]), null, null, null, [1]]];
       try {
-        return await makeApiRequest(fetch, windowGlobalData, rpcid, requestData);
+        const response = await makeApiRequest(fetch, windowGlobalData, rpcid, requestData);
+        // A successful response should be a non-empty array. A silent failure might return null or an empty array.
+        return Array.isArray(response) && response.length > 0;
       } catch (error) {
-        console.error('Error in addItemsToSharedAlbum:', error);
-        throw error;
+        console.error('Error in addItemsToAlbum:', error);
+        return false; // Treat network errors as a failure.
       }
     }
 
@@ -186,8 +188,12 @@
         log(`Found ${matchedItems.length} matching items.`);
         if (matchedItems.length > 0) {
           log(`Adding ${matchedItems.length} items to destination album...`);
-          await addItemsToSharedAlbum(fetch, windowGlobalData, matchedItems, destination);
-          log('Done.');
+          const success = await addItemsToAlbum(fetch, windowGlobalData, matchedItems, destination);
+          if (success) {
+            log('Successfully added items to the album.');
+          } else {
+            log('Error: Failed to add items to the album. The API returned an unexpected response.');
+          }
         }
     }
 
@@ -298,7 +304,7 @@
             getAlbums,
             getAlbumPage,
             getItemInfo,
-            addItemsToSharedAlbum,
+            addItemsToAlbum,
             startProcessing,
             createUI, // We can still test parts of the UI setup
             start,

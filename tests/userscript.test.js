@@ -82,10 +82,10 @@ describe('Userscript Core Logic', () => {
         await expect(userscript.getItemInfo(mockFetch, mockWindowGlobalData, 'photo_1')).rejects.toThrow('Network error');
     });
 
-    it('should add items to a shared album', async () => {
+    it('should add items to an album', async () => {
         mockFetch.mockResolvedValueOnce(createMockApiResponse('laUYf', []));
 
-        await userscript.addItemsToSharedAlbum(mockFetch, mockWindowGlobalData, ['photo_1'], 'album_id_2');
+        await userscript.addItemsToAlbum(mockFetch, mockWindowGlobalData, ['photo_1'], 'album_id_2');
 
         expect(mockFetch).toHaveBeenCalled();
         const requestBody = mockFetch.mock.calls[0][1].body;
@@ -93,9 +93,10 @@ describe('Userscript Core Logic', () => {
         expect(requestBody).toContain('album_id_2');
     });
 
-    it('should handle errors when adding items to a shared album', async () => {
+    it('should handle errors when adding items to an album', async () => {
         mockFetch.mockRejectedValueOnce(new Error('Network error'));
-        await expect(userscript.addItemsToSharedAlbum(mockFetch, mockWindowGlobalData, ['photo_1'], 'album_id_2')).rejects.toThrow('Network error');
+        const success = await userscript.addItemsToAlbum(mockFetch, mockWindowGlobalData, ['photo_1'], 'album_id_2');
+        expect(success).toBe(false);
     });
 
     // --- Testing the main processing function ---
@@ -117,7 +118,7 @@ describe('Userscript Core Logic', () => {
             .mockResolvedValueOnce(createMockApiResponse('snAcKc', albumPageData)) // getAlbumPage
             .mockResolvedValueOnce(createMockApiResponse('VrseUb', itemInfoUnsaved)) // getItemInfo for photo 1
             .mockResolvedValueOnce(createMockApiResponse('VrseUb', itemInfoSaved))   // getItemInfo for photo 2
-            .mockResolvedValueOnce(createMockApiResponse('laUYf', [])); // addItemsToSharedAlbum
+            .mockResolvedValueOnce(createMockApiResponse('laUYf', [])); // addItemsToAlbum
 
         await userscript.startProcessing(mockFetch, mockWindowGlobalData, log, getUiState);
 
@@ -158,6 +159,31 @@ describe('Userscript Core Logic', () => {
         await userscript.startProcessing(mockFetch, mockWindowGlobalData, log, getUiState);
 
         expect(log).toHaveBeenCalledWith('No destination album selected.');
+    });
+
+    it('should log a failure message when adding items fails silently', async () => {
+        const log = jest.fn();
+        const getUiState = () => ({
+            selectedAlbums: ['album_id_1'],
+            filter: 'not-saved',
+            destination: 'album_id_2',
+        });
+
+        // Mock the sequence of fetch calls
+        const albumPageData = [null, [['photo_1_unsaved']]];
+        const itemInfoUnsaved = [ ['photo_1_unsaved', null, null, null, null, null, null, null, null, null, null, null, null, null, null, {'163238866': []}] ];
+
+        mockFetch
+            .mockResolvedValueOnce(createMockApiResponse('snAcKc', albumPageData)) // getAlbumPage
+            .mockResolvedValueOnce(createMockApiResponse('VrseUb', itemInfoUnsaved)) // getItemInfo for photo 1
+            .mockResolvedValueOnce(createMockApiResponse('laUYf', [])); // addItemsToAlbum -> SILENT FAILURE
+
+        await userscript.startProcessing(mockFetch, mockWindowGlobalData, log, getUiState);
+
+        // Check logs
+        expect(log).toHaveBeenCalledWith('Adding 1 items to destination album...');
+        expect(log).toHaveBeenCalledWith('Error: Failed to add items to the album. The API returned an unexpected response.');
+        expect(log).not.toHaveBeenCalledWith('Done.');
     });
 
     // --- Testing UI Creation (basic) ---
