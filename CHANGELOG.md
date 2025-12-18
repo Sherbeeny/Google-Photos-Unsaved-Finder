@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025.12.19-0018] - 2025-12-19
+
+### Fixed
+- Corrected the "add to album" logic by using the appropriate API endpoints for shared and non-shared albums, resolving the silent failure.
+- Refactored the UI creation to use `document.createElement` instead of `innerHTML`, fixing a `TrustedHTML` security policy violation.
+- Added a new Playwright E2E test suite to prevent future browser security errors.
+- Corrected the versioning for the bug fix to ensure the userscript updates correctly.
+
 ## [2025.12.18-1346] - 2025-12-18
 
 ### Fixed
