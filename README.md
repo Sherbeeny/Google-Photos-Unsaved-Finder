@@ -1,6 +1,6 @@
 # Google Photos Unsaved Finder
 
-This project provides a Tampermonkey userscript to help users find photos in their Google Photos albums that are not saved to their main library.
+This project provides a Tampermonkey userscript inspired by [Google Photos Toolkit](https://github.com/xob0t/Google-Photos-Toolkit) to help users find photos in their Google Photos albums that are not saved to their main library.
 
 ## Features
 
