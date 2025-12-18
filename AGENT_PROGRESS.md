@@ -1,49 +1,34 @@
 # Agent Progress
 
-## Version: 2025.12.18-1622
+## Version: 2025.12.18-1808
 
-### Task: Improve logging and add E2E tests for security violations.
+### Task: Fix the `source-path` parameter to resolve the `null` API response.
 
 ### Acceptance Criteria
-- All API-calling functions must return a standardized result object (`{ success, data, error }`).
-- The main processing logic must log detailed error messages, including the server response, upon failure.
-- A new Playwright E2E test must be implemented to catch `TrustedHTML` and other browser security violations.
-- All unit and E2E tests must pass.
+- The `makeApiRequest` function must use the current page's path for the `'source-path'` parameter.
+- The "add to album" operation must succeed, and the API should no longer return `null`.
+- All tests, including unit and E2E, must pass.
 
 ### Plan
 1. *prework: Update project version and documentation.*
-   - Update the version in `package.json` and `src/google_photos_unsaved_finder.user.js` to a new timestamp-based version.
+   - Update the version in `package.json` and `src/google_photos_unsaved_finder.user.js`.
    - Verify all file updates.
-   - Update `AGENT_PROGRESS.md` with the full plan for this session.
-2. *work: Set up Playwright for browser testing.*
-   - Add `@playwright/test` as a dev dependency using `pnpm`.
-   - Create a basic `playwright.config.js` file.
-   - Add a new `test:e2e` script to `package.json` to run Playwright tests.
-   - Verify all file updates.
-3. *work: Create an E2E test to catch `TrustedHTML` errors.*
-   - Create a simple HTML file (`tests/e2e/harness.html`) to act as a test page.
-   - Create a new test file, `tests/e2e/security.spec.js`.
-   - In the new test, write logic to launch a browser, load the harness page, inject the userscript, and listen for console errors.
-   - The test will execute the `createUI` function and assert that no errors related to `TrustedHTML` are thrown.
-4. *work: Refactor API functions to return detailed result objects.*
-   - In `src/google_photos_unsaved_finder.user.js`, modify `getAlbums`, `getAlbumPage`, `getItemInfo`, and `addItemsToAlbum`.
-   - Each function will be updated to return a `{ success, data, error }` object instead of throwing errors or returning simple booleans.
-   - Verify the changes.
-5. *work: Update Jest tests to align with the new API function format.*
-   - In `tests/userscript.test.js`, rewrite the tests for the API functions.
-   - Tests that previously checked for thrown errors will now be updated to assert that the functions return a `{ success: false, ... }` object with an appropriate error message.
-   - Verify the changes.
-6. *work: Update the main processing logic for detailed logging.*
-   - Rewrite the `startProcessing` function to handle the new result objects from the API calls.
-   - If any step fails, it will now log a detailed error message including the response from the server.
-   - Verify the changes.
-7. *work: Update Jest test for the main processing logic.*
-   - Rewrite the `startProcessing` tests to assert that the new, detailed error messages are being logged correctly.
-   - Verify the changes.
-8. *work: Ensure all tests pass.*
-   - Run the Jest test suite (`pnpm test`) to confirm all unit/integration tests pass.
-   - Run the Playwright E2E test suite (`pnpm test:e2e`) to confirm no browser-level security errors occur.
-9. *postwork: Complete pre-commit steps.*
-   - Run the linter and test coverage checks to ensure code quality.
-10. *postwork: Submit the change.*
-    - Submit the final, verified changes with a clear commit message.
+   - Update `AGENT_PROGRESS.md` with the full plan.
+2. *work: Refactor `makeApiRequest` to use a dynamic `source-path`.*
+   - In `src/google_photos_unsaved_finder.user.js`, I will modify the `makeApiRequest` function to accept the current page's path as a new argument.
+   - The function will use this path for the `'source-path'` parameter in the API request, instead of the hardcoded `'/'`.
+   - I will verify the changes by reading the file.
+3. *work: Update calling functions to pass the page path.*
+   - I will modify the `startProcessing` and `createUI` functions to fetch `window.location.pathname`.
+   - This path will then be passed down through all the intermediate API-calling functions (`getAlbums`, `getAlbumPage`, `getItemInfo`, `addItemsToAlbum`).
+   - I will verify the changes by reading the file.
+4. *work: Update all tests to provide a mock path.*
+   - In `tests/userscript.test.js`, I will update the mock `windowGlobalData` to include a `pathname` property.
+   - All test calls to the API functions will be updated to pass this mock path, ensuring the tests align with the new function signatures.
+   - I will verify the changes by reading the test file.
+5. *work: Ensure all tests pass.*
+   - I will run the full Jest and Playwright test suites to confirm that the changes have fixed the issue without introducing any regressions.
+6. *postwork: Complete pre-commit steps.*
+   - I will run the linter and test coverage checks.
+7. *postwork: Submit the change.*
+   - I will submit the final, working solution with a clear commit message explaining the fix.

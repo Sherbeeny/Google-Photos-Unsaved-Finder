@@ -10,6 +10,7 @@ const mockWindowGlobalData = {
   cfb2h: 'test_bl',
   eptZe: '/_/',
   SNlM0e: 'test_at',
+  pathname: '/test-path',
 };
 
 // --- Helper to create mock API responses ---
@@ -35,7 +36,7 @@ describe('Userscript Core Logic', () => {
         const mockAlbumData = [[["album_id_1", ["thumbnail_url_1"], null, null, null, null, ["owner_id_1"], {"72930366":[null,"Test Album 1",null,123,false]}]]];
         mockFetch.mockResolvedValueOnce(createMockApiResponse('Z5xsfc', mockAlbumData));
 
-        const result = await userscript.getAlbums(mockFetch, mockWindowGlobalData);
+        const result = await userscript.getAlbums(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname);
 
         expect(mockFetch).toHaveBeenCalled();
         expect(result.success).toBe(true);
@@ -45,7 +46,7 @@ describe('Userscript Core Logic', () => {
 
     it('should handle errors when fetching albums', async () => {
         mockFetch.mockRejectedValueOnce(new Error('Network error'));
-        const result = await userscript.getAlbums(mockFetch, mockWindowGlobalData);
+        const result = await userscript.getAlbums(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname);
         expect(result.success).toBe(false);
         expect(result.error).toBe('Network error');
     });
@@ -54,7 +55,7 @@ describe('Userscript Core Logic', () => {
         const mockAlbumPageData = [null, [['photo_1']]];
         mockFetch.mockResolvedValueOnce(createMockApiResponse('snAcKc', mockAlbumPageData));
 
-        const result = await userscript.getAlbumPage(mockFetch, mockWindowGlobalData, 'album_id_1');
+        const result = await userscript.getAlbumPage(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, 'album_id_1');
 
         expect(mockFetch).toHaveBeenCalled();
         expect(result.success).toBe(true);
@@ -64,7 +65,7 @@ describe('Userscript Core Logic', () => {
 
     it('should handle errors when fetching an album page', async () => {
         mockFetch.mockRejectedValueOnce(new Error('Network error'));
-        const result = await userscript.getAlbumPage(mockFetch, mockWindowGlobalData, 'album_id_1');
+        const result = await userscript.getAlbumPage(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, 'album_id_1');
         expect(result.success).toBe(false);
         expect(result.error).toBe('Network error');
     });
@@ -74,7 +75,7 @@ describe('Userscript Core Logic', () => {
         const mockItemInfoData = [ ['photo_1', null, null, null, null, null, null, null, null, null, null, null, null, null, null, {'163238866': [true]}] ];
         mockFetch.mockResolvedValueOnce(createMockApiResponse('VrseUb', mockItemInfoData));
 
-        const result = await userscript.getItemInfo(mockFetch, mockWindowGlobalData, 'photo_1');
+        const result = await userscript.getItemInfo(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, 'photo_1');
 
         expect(mockFetch).toHaveBeenCalled();
         expect(result.success).toBe(true);
@@ -83,7 +84,7 @@ describe('Userscript Core Logic', () => {
 
     it('should handle errors when getting item info', async () => {
         mockFetch.mockRejectedValueOnce(new Error('Network error'));
-        const result = await userscript.getItemInfo(mockFetch, mockWindowGlobalData, 'photo_1');
+        const result = await userscript.getItemInfo(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, 'photo_1');
         expect(result.success).toBe(false);
         expect(result.error).toBe('Network error');
     });
@@ -91,7 +92,7 @@ describe('Userscript Core Logic', () => {
     it('should add items to an album', async () => {
         mockFetch.mockResolvedValueOnce(createMockApiResponse('laUYf', [1]));
 
-        const result = await userscript.addItemsToAlbum(mockFetch, mockWindowGlobalData, ['photo_1'], 'album_id_2');
+        const result = await userscript.addItemsToAlbum(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, ['photo_1'], 'album_id_2');
 
         expect(mockFetch).toHaveBeenCalled();
         expect(result.success).toBe(true);
@@ -102,7 +103,7 @@ describe('Userscript Core Logic', () => {
 
     it('should handle errors when adding items to an album', async () => {
         mockFetch.mockRejectedValueOnce(new Error('Network error'));
-        const result = await userscript.addItemsToAlbum(mockFetch, mockWindowGlobalData, ['photo_1'], 'album_id_2');
+        const result = await userscript.addItemsToAlbum(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, ['photo_1'], 'album_id_2');
         expect(result.success).toBe(false);
         expect(result.error).toBe('Network error');
     });
@@ -127,7 +128,7 @@ describe('Userscript Core Logic', () => {
             .mockResolvedValueOnce(createMockApiResponse('VrseUb', itemInfoSaved))   // getItemInfo for photo 2
             .mockResolvedValueOnce(createMockApiResponse('laUYf', [1])); // addItemsToAlbum
 
-        await userscript.startProcessing(mockFetch, mockWindowGlobalData, log, getUiState);
+        await userscript.startProcessing(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, log, getUiState);
 
         // Check logs
         expect(log).toHaveBeenCalledWith('Starting processing...');
@@ -151,7 +152,7 @@ describe('Userscript Core Logic', () => {
             destination: 'album_id_2',
         });
 
-        await userscript.startProcessing(mockFetch, mockWindowGlobalData, log, getUiState);
+        await userscript.startProcessing(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, log, getUiState);
 
         expect(log).toHaveBeenCalledWith('No source albums selected.');
     });
@@ -164,7 +165,7 @@ describe('Userscript Core Logic', () => {
             destination: '',
         });
 
-        await userscript.startProcessing(mockFetch, mockWindowGlobalData, log, getUiState);
+        await userscript.startProcessing(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, log, getUiState);
 
         expect(log).toHaveBeenCalledWith('No destination album selected.');
     });
@@ -186,7 +187,7 @@ describe('Userscript Core Logic', () => {
             .mockResolvedValueOnce(createMockApiResponse('VrseUb', itemInfoUnsaved)) // getItemInfo for photo 1
             .mockResolvedValueOnce(createMockApiResponse('laUYf', [])); // addItemsToAlbum -> SILENT FAILURE
 
-        await userscript.startProcessing(mockFetch, mockWindowGlobalData, log, getUiState);
+        await userscript.startProcessing(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, log, getUiState);
 
         // Check logs
         expect(log).toHaveBeenCalledWith('Adding 1 items to destination album...');
