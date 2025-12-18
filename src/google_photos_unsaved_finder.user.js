@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Unsaved Finder
 // @namespace    http://tampermonkey.net/
-// @version      2025.12.18-1557
+// @version      2025.12.18-1605
 // @description  A userscript to find unsaved photos in Google Photos albums.
 // @author       Sherbeeny (via Jules the AI Agent)
 // @match        https://photos.google.com/*
@@ -214,7 +214,7 @@
 
       const closeButton = document.createElement('button');
       closeButton.className = 'gpuf-close-button';
-      closeButton.innerHTML = '&times;'; // Using innerHTML for a simple times symbol is generally safe.
+      closeButton.textContent = '\u00D7';
 
       header.appendChild(title);
       header.appendChild(closeButton);
