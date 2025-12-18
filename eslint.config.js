@@ -7,7 +7,7 @@ const jestPlugin = require("eslint-plugin-jest");
 module.exports = [
   {
     // Base configuration for all files
-    ignores: ["tampermonkey/unpacked/**", "scripts/**"],
+    ignores: ["tampermonkey/unpacked/**", "scripts/**", "coverage/lcov-report/**"],
     languageOptions: {
       ecmaVersion: 2021,
       sourceType: "script",

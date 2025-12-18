@@ -1,19 +1,18 @@
 # Agent Progress
 
-## Version: 2025.12.17-1657
+## Version: 2025.12.18-1346
 
-### Task: Fix the core logic and test suite.
+### Task: Address user feedback and re-submit.
 
 ### Acceptance Criteria
-- The userscript must be refactored to be testable.
-- All core logic must be covered by unit tests.
-- All tests must pass.
-- The linter must pass.
-- Test coverage must be at least 80%.
+- Correct the "add to album" logic to prevent consuming user storage.
+- Improve UI contrast and readability.
+- Set the log viewer to a fixed, scrollable height.
+- Follow the correct 3-phase plan structure for submission.
 
 ### Final Results
-- Refactored the userscript to use dependency injection, making the core logic testable.
-- Wrote a comprehensive test suite for the core logic, including API functions and the main processing logic.
-- All tests are now passing.
-- The linter is now passing.
-- Test coverage is above 80%.
+- Updated the `addItemsToSharedAlbum` function to use the correct `rpcid` (`laUYf`), preventing items from being saved to the user's main library.
+- Implemented a dark theme for the UI to improve contrast.
+- Set a fixed height of 120px for the log viewer, making it scrollable.
+- Generated a new version, updated all relevant documentation (`CHANGELOG.md`, `AGENT_PROGRESS.md`), and followed the correct pre-work, work, and post-work phases for the submission.
+- All tests and linting checks are passing.

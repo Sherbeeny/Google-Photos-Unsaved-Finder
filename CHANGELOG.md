@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025.12.18-1346] - 2025-12-18
+
+### Fixed
+- Corrected the "add to album" logic to prevent consuming user storage.
+- Improved UI contrast and readability with a new dark theme.
+- Set the log viewer to a fixed, scrollable height for a more stable layout.
+- Updated project version and documentation in accordance with repository procedures.
+
 ## [2025.12.17-1700] - 2025-12-17
 
 ### Changed
