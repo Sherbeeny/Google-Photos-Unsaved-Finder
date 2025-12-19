@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Unsaved Finder
 // @namespace    http://tampermonkey.net/
-// @version      2025.12.19-0018
+// @version      2025.12.19-0307
 // @description  A userscript to find unsaved photos in Google Photos albums.
 // @author       Sherbeeny (via Jules the AI Agent)
 // @match        https://photos.google.com/*
@@ -236,35 +236,43 @@
     }
 
     // --- UI Layer (Remains coupled to the DOM and Tampermonkey) ---
-    function createUI() {
+    function createUI(doc = document) {
       // Create elements programmatically to comply with TrustedHTML
-      const overlay = document.createElement('div');
+      const overlay = doc.createElement('div');
       overlay.className = 'gpuf-modal-overlay';
 
-      const modal = document.createElement('div');
+      const modal = doc.createElement('div');
       modal.className = 'gpuf-modal';
 
-      const header = document.createElement('div');
+      const header = doc.createElement('div');
       header.className = 'gpuf-modal-header';
 
-      const title = document.createElement('h2');
+      const title = doc.createElement('h2');
       title.textContent = 'Google Photos Unsaved Finder';
 
-      const closeButton = document.createElement('button');
+      const closeButton = doc.createElement('button');
       closeButton.className = 'gpuf-close-button';
       closeButton.textContent = '\u00D7';
 
       header.appendChild(title);
       header.appendChild(closeButton);
 
-      const content = document.createElement('div');
+      const content = doc.createElement('div');
       content.className = 'gpuf-modal-content';
 
-      const albumList = document.createElement('div');
+      const albumsToSearchLabel = doc.createElement('div');
+      albumsToSearchLabel.textContent = 'Albums to search';
+      albumsToSearchLabel.style.marginBottom = '5px';
+
+      const albumList = doc.createElement('div');
       albumList.className = 'gpuf-album-list';
 
-      const filterControls = document.createElement('div');
+      const filterControls = doc.createElement('div');
       filterControls.className = 'gpuf-filter-controls';
+
+      const itemsToFindLabel = doc.createElement('span');
+      itemsToFindLabel.textContent = 'Items to find: ';
+      filterControls.appendChild(itemsToFindLabel);
 
       const filters = [
         { value: 'any', text: ' Any' },
@@ -273,37 +281,44 @@
       ];
 
       filters.forEach(filter => {
-        const label = document.createElement('label');
-        const input = document.createElement('input');
+        const label = doc.createElement('label');
+        label.style.marginRight = '10px';
+        const input = doc.createElement('input');
         input.type = 'radio';
         input.name = 'filter';
         input.value = filter.value;
         if (filter.checked) input.checked = true;
         label.appendChild(input);
-        label.appendChild(document.createTextNode(filter.text));
+        label.appendChild(doc.createTextNode(filter.text));
         filterControls.appendChild(label);
       });
 
-      const destinationControls = document.createElement('div');
+      const destinationControls = doc.createElement('div');
       destinationControls.className = 'gpuf-destination-controls';
+      destinationControls.style.display = 'flex';
+      destinationControls.style.alignItems = 'center';
 
-      const destinationLabel = document.createElement('label');
+      const destinationLabel = doc.createElement('label');
       destinationLabel.htmlFor = 'destination-album';
-      destinationLabel.textContent = 'Destination Album';
+      destinationLabel.textContent = 'Add them to album';
+      destinationLabel.style.marginRight = '5px';
+      destinationLabel.style.flexShrink = '0';
 
-      const destinationSelect = document.createElement('select');
+      const destinationSelect = doc.createElement('select');
       destinationSelect.id = 'destination-album';
+      destinationSelect.style.width = '100%';
 
       destinationControls.appendChild(destinationLabel);
       destinationControls.appendChild(destinationSelect);
 
-      const startButton = document.createElement('button');
+      const startButton = doc.createElement('button');
       startButton.className = 'gpuf-start-button';
       startButton.textContent = 'Start';
 
-      const logViewer = document.createElement('div');
+      const logViewer = doc.createElement('div');
       logViewer.className = 'gpuf-log-viewer';
 
+      content.appendChild(albumsToSearchLabel);
       content.appendChild(albumList);
       content.appendChild(filterControls);
       content.appendChild(destinationControls);
@@ -314,7 +329,7 @@
       modal.appendChild(content);
       overlay.appendChild(modal);
 
-      document.body.appendChild(overlay);
+      doc.body.appendChild(overlay);
 
 
       // In a real userscript, GM_addStyle would be used. For testing, this is a no-op.
@@ -331,7 +346,7 @@
           }
           .gpuf-modal-header {
             display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid #444; padding-bottom: 10px;
+            padding-bottom: 10px;
           }
           .gpuf-modal-header h2 { color: #e0e0e0; }
           .gpuf-album-list {
@@ -346,12 +361,14 @@
             background: #333; color: #e0e0e0;
           }
           .gpuf-filter-controls, .gpuf-destination-controls { margin: 15px 0; }
+          #destination-album { text-align: left; }
           .gpuf-close-button {
             background: none; border: none; font-size: 24px; color: #e0e0e0; cursor: pointer;
           }
           .gpuf-start-button {
             background-color: #4CAF50; color: white; padding: 10px 15px;
             border: none; border-radius: 4px; cursor: pointer;
+            width: 100%; box-sizing: border-box;
           }
           .gpuf-start-button:hover { background-color: #45a049; }
         `);
@@ -360,11 +377,16 @@
       closeButton.addEventListener('click', () => overlay.remove());
 
       const log = (message) => {
-        const logEntry = document.createElement('div');
+        const logEntry = doc.createElement('div');
         logEntry.textContent = message;
         logViewer.appendChild(logEntry);
         logViewer.scrollTop = logViewer.scrollHeight;
       };
+
+      // Log the script version on UI load
+      if (typeof GM_info !== 'undefined' && GM_info.script) {
+        log(`Version: ${GM_info.script.version}`);
+      }
 
       const albumsCache = []; // Store full album objects
 
@@ -385,16 +407,16 @@
         if (result.success) {
           albumsCache.push(...result.data); // Cache the full album objects
           result.data.forEach(album => {
-            const label = document.createElement('label');
-            const input = document.createElement('input');
+            const label = doc.createElement('label');
+            const input = doc.createElement('input');
           input.type = 'checkbox';
           input.value = album.mediaKey;
           label.appendChild(input);
-          label.appendChild(document.createTextNode(` ${album.title}`));
+          label.appendChild(doc.createTextNode(` ${album.title}`));
           albumList.appendChild(label);
 
 
-          const optionEl = document.createElement('option');
+          const optionEl = doc.createElement('option');
           optionEl.value = album.mediaKey;
           optionEl.textContent = album.title;
           destinationSelect.appendChild(optionEl);

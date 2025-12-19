@@ -15,33 +15,35 @@ test('UI creation should not violate TrustedHTML policy', async ({ page }) => {
     }
   });
 
-  // 3. Navigate to the local test harness page.
-  await page.goto(`file://${path.join(__dirname, 'harness.html')}`);
+  // 3. Navigate to a blank page to create a clean environment.
+  await page.goto('about:blank');
 
-  // 4. Inject the userscript into the page.
-  await page.evaluate(userscriptContent);
-
-  // 5. Mock the necessary global objects that the userscript expects.
+  // 4. Mock the necessary Tampermonkey environment.
   await page.evaluate(() => {
-    window.WIZ_global_data = {
-        Dbw5Ud: 'rapt_token',
-        oPEP7c: 'account_id',
-        FdrFJe: 'f.sid_token',
-        cfb2h: 'bl_token',
-        eptZe: '/_/PhotosUi',
-        SNlM0e: 'at_token',
+    window.unsafeWindow = {
+        WIZ_global_data: {
+            Dbw5Ud: 'rapt_token',
+            oPEP7c: 'account_id',
+            FdrFJe: 'f.sid_token',
+            cfb2h: 'bl_token',
+            eptZe: '/_/PhotosUi',
+            SNlM0e: 'at_token',
+        }
     };
     window.GM_addStyle = () => {};
     window.GM_registerMenuCommand = (name, fn) => {
-      // Immediately execute the function to trigger the UI creation.
       fn();
     };
+     window.fetch = async () => ({
+        ok: true,
+        text: async () => `)]}'\n[null,null,"[]"]`,
+     });
   });
 
-  // 6. Execute the userscript's start function to create the UI.
-  // This is handled by the GM_registerMenuCommand mock above.
+  // 5. Inject and execute the userscript.
+  await page.evaluate(userscriptContent);
 
-  // 7. Assert that no TrustedHTML or related CSP errors were logged.
+  // 6. Assert that no TrustedHTML or related CSP errors were logged.
   const hasTrustedHTMLError = consoleErrors.some(error =>
     error.includes('TrustedHTML') || error.includes('Content Security Policy')
   );
