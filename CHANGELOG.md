@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2025.12.19-0307] - 2025-12-19
+
+### Added
+- Created a GitHub Actions workflow to automatically create a new release when a new version is pushed to the `main` branch.
+
+### Changed
+- The "Start" button is now full-width for a more modern look.
+- Updated the UI labels to "Albums to search" and "Add them to album" for better clarity.
+- The destination album dropdown now has left-aligned text.
+
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 

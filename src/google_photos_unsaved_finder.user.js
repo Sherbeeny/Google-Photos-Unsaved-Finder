@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Unsaved Finder
 // @namespace    http://tampermonkey.net/
-// @version      2025.12.19-0137
+// @version      2025.12.19-0307
 // @description  A userscript to find unsaved photos in Google Photos albums.
 // @author       Sherbeeny (via Jules the AI Agent)
 // @match        https://photos.google.com/*
@@ -260,11 +260,19 @@
       const content = doc.createElement('div');
       content.className = 'gpuf-modal-content';
 
+      const albumsToSearchLabel = doc.createElement('div');
+      albumsToSearchLabel.textContent = 'Albums to search';
+      albumsToSearchLabel.style.marginBottom = '5px';
+
       const albumList = doc.createElement('div');
       albumList.className = 'gpuf-album-list';
 
       const filterControls = doc.createElement('div');
       filterControls.className = 'gpuf-filter-controls';
+
+      const itemsToFindLabel = doc.createElement('span');
+      itemsToFindLabel.textContent = 'Items to find: ';
+      filterControls.appendChild(itemsToFindLabel);
 
       const filters = [
         { value: 'any', text: ' Any' },
@@ -287,14 +295,18 @@
 
       const destinationControls = doc.createElement('div');
       destinationControls.className = 'gpuf-destination-controls';
+      destinationControls.style.display = 'flex';
+      destinationControls.style.alignItems = 'center';
 
       const destinationLabel = doc.createElement('label');
       destinationLabel.htmlFor = 'destination-album';
-      destinationLabel.textContent = 'Destination Album';
+      destinationLabel.textContent = 'Add them to album';
       destinationLabel.style.marginRight = '5px';
+      destinationLabel.style.flexShrink = '0';
 
       const destinationSelect = doc.createElement('select');
       destinationSelect.id = 'destination-album';
+      destinationSelect.style.width = '100%';
 
       destinationControls.appendChild(destinationLabel);
       destinationControls.appendChild(destinationSelect);
@@ -306,13 +318,11 @@
       const logViewer = doc.createElement('div');
       logViewer.className = 'gpuf-log-viewer';
 
+      content.appendChild(albumsToSearchLabel);
       content.appendChild(albumList);
       content.appendChild(filterControls);
       content.appendChild(destinationControls);
-      const buttonContainer = doc.createElement('div');
-      buttonContainer.style.textAlign = 'right';
-      buttonContainer.appendChild(startButton);
-      content.appendChild(buttonContainer);
+      content.appendChild(startButton);
       content.appendChild(logViewer);
 
       modal.appendChild(header);
@@ -351,12 +361,14 @@
             background: #333; color: #e0e0e0;
           }
           .gpuf-filter-controls, .gpuf-destination-controls { margin: 15px 0; }
+          #destination-album { text-align: left; }
           .gpuf-close-button {
             background: none; border: none; font-size: 24px; color: #e0e0e0; cursor: pointer;
           }
           .gpuf-start-button {
             background-color: #4CAF50; color: white; padding: 10px 15px;
             border: none; border-radius: 4px; cursor: pointer;
+            width: 100%; box-sizing: border-box;
           }
           .gpuf-start-button:hover { background-color: #45a049; }
         `);
