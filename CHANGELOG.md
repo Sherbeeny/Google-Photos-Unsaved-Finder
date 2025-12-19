@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2025.12.19-0137] - 2025-12-19
+
+### Added
+- The userscript version is now displayed in the log viewer when the UI is first loaded.
+
+### Changed
+- Removed the horizontal line below the title for a cleaner look.
+- Moved the "Start" button to the right side of the UI.
+- Added spacing between the "Destination Album" label and the dropdown menu.
+- Added spacing between the radio buttons for better readability.
+
 ## [2025.12.19-0018] - 2025-12-19
 
 ### Fixed
