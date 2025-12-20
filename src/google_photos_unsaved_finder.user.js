@@ -37,7 +37,7 @@
       return {
         mediaKey: itemData?.[0],
         title: itemData?.at(-1)?.[72930366]?.[1],
-        isShared: itemData?.at(-1)?.[72930366]?.[4] || false,
+        isShared: itemData?.[7]?.length > 0,
       };
     }
 
@@ -61,7 +61,7 @@
     function itemInfoParse(itemData) {
       return {
         mediaKey: itemData[0]?.[0],
-        savedToYourPhotos: itemData[0]?.[15]?.[163238866]?.length > 0,
+        savedToYourPhotos: Array.isArray(itemData[0]?.[5]),
       };
     }
     function parser(data, rpcid) {
@@ -350,7 +350,7 @@
           }
           .gpuf-modal-header h2 { color: #e0e0e0; }
           .gpuf-album-list {
-            max-height: 200px; overflow-y: scroll; border: 1px solid #444;
+            max-height: 8em; overflow-y: scroll; border: 1px solid #444;
             padding: 10px; margin: 10px 0; background: #333;
           }
           .gpuf-album-list label { display: block; margin-bottom: 5px; }

@@ -71,8 +71,11 @@ describe('Userscript Core Logic', () => {
     });
 
     it('should get item info correctly', async () => {
-        // Corrected mock data: removed extra array nesting
-        const mockItemInfoData = [ ['photo_1', null, null, null, null, null, null, null, null, null, null, null, null, null, null, {'163238866': [true]}] ];
+        // This mock data is updated for the new `itemInfoParse` logic.
+        // It now includes the `[5]` array, which is the correct indicator for a saved item.
+        const mockItemInfoData = [
+            [ "photo_1", null, null, null, null, [] ] // The presence of [] at index 5 means "saved".
+        ];
         mockFetch.mockResolvedValueOnce(createMockApiResponse('VrseUb', mockItemInfoData));
 
         const result = await userscript.getItemInfo(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, 'photo_1');
@@ -129,10 +132,12 @@ describe('Userscript Core Logic', () => {
             destinationAlbum: { mediaKey: 'album_id_2', isShared: true },
         });
 
-        // Mock the sequence of fetch calls
+        // Mock the sequence of fetch calls with updated item info data structures
         const albumPageData = [null, [['photo_1_unsaved'], ['photo_2_saved']]];
-        const itemInfoUnsaved = [ ['photo_1_unsaved', null, null, null, null, null, null, null, null, null, null, null, null, null, null, {'163238866': []}] ];
-        const itemInfoSaved = [ ['photo_2_saved', null, null, null, null, null, null, null, null, null, null, null, null, null, null, {'163238866': [true]}] ];
+        // Unsaved item: No array at index 5
+        const itemInfoUnsaved = [ ['photo_1_unsaved'] ];
+        // Saved item: Has an empty array at index 5
+        const itemInfoSaved = [ ['photo_2_saved', null, null, null, null, []] ];
 
         mockFetch
             .mockResolvedValueOnce(createMockApiResponse('snAcKc', albumPageData)) // getAlbumPage
@@ -164,10 +169,12 @@ describe('Userscript Core Logic', () => {
             destinationAlbum: { mediaKey: 'album_id_2', isShared: false },
         });
 
-        // Mock the sequence of fetch calls
+        // Mock the sequence of fetch calls with updated item info data structures
         const albumPageData = [null, [['photo_1_unsaved'], ['photo_2_saved']]];
-        const itemInfoUnsaved = [ ['photo_1_unsaved', null, null, null, null, null, null, null, null, null, null, null, null, null, null, {'163238866': []}] ];
-        const itemInfoSaved = [ ['photo_2_saved', null, null, null, null, null, null, null, null, null, null, null, null, null, null, {'163238866': [true]}] ];
+        // Unsaved item: No array at index 5
+        const itemInfoUnsaved = [ ['photo_1_unsaved'] ];
+        // Saved item: Has an empty array at index 5
+        const itemInfoSaved = [ ['photo_2_saved', null, null, null, null, []] ];
 
         mockFetch
             .mockResolvedValueOnce(createMockApiResponse('snAcKc', albumPageData)) // getAlbumPage
@@ -240,6 +247,41 @@ describe('Userscript Core Logic', () => {
         expect(log).toHaveBeenCalledWith('Adding 1 items to destination album...');
         expect(log).toHaveBeenCalledWith('Error: Failed to add items to the album. API returned an unexpected response.. Response: []');
         expect(log).not.toHaveBeenCalledWith('Successfully added items to the album.');
+    });
+
+    // --- Testing Parsers ---
+    describe('Parsers', () => {
+        it('albumParse should correctly identify a private album', () => {
+            // This mock data is designed to make the OLD logic fail.
+            // A private album won't have sharing info at index 7.
+            // However, the old logic incorrectly checks the last element's metadata (`[4]`), which can be true
+            // for reasons other than sharing, causing a private album to be treated as shared.
+            const mockPrivateAlbumData = [
+                "album_id_private",
+                ["thumbnail_url"], null, null, null, null, null,
+                // No element at index 7, which is what the NEW logic will correctly check for.
+                { "72930366": [null, "Private Album Title", null, 42, true] } // Old logic sees `true` here and fails.
+            ];
+            const parsed = userscript.albumParse(mockPrivateAlbumData);
+            expect(parsed.isShared).toBe(false);
+        });
+
+        it('itemInfoParse should correctly identify a saved item via new logic', () => {
+            // This mock data represents a saved item that the old logic misses.
+            // The old logic checks `[15][163238866]`, which is absent here.
+            // The new logic correctly identifies the item as saved by the presence of the `[5]` array.
+            const mockSavedItemData = [
+                [
+                    "item_id_saved",
+                    null, null, null, null,
+                    [], // Index 5: Presence of this array indicates "saved"
+                    null, null, null, null, null, null, null, null, null,
+                    {} // Index 15: The old check looks here and fails
+                ]
+            ];
+            const parsed = userscript.itemInfoParse(mockSavedItemData);
+            expect(parsed.savedToYourPhotos).toBe(true);
+        });
     });
 
     // --- Testing UI Creation (basic) ---
