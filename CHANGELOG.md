@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2025.12.20-1809] - 2025-12-20
+
+### Fixed
+- Corrected the logic for detecting saved items, which was failing to identify manually saved photos.
+- Fixed the logic for identifying shared albums, which was causing errors when adding items to private albums.
+
+### Changed
+- The "Albums to search" list is now scrollable and has a maximum height of five lines (`5.5em`).
+
 ## [2025.12.19-0307] - 2025-12-19
 
 ### Added

@@ -350,7 +350,7 @@
           }
           .gpuf-modal-header h2 { color: #e0e0e0; }
           .gpuf-album-list {
-            max-height: 8em; overflow-y: scroll; border: 1px solid #444;
+            max-height: 5.5em; overflow-y: scroll; border: 1px solid #444;
             padding: 10px; margin: 10px 0; background: #333;
           }
           .gpuf-album-list label { display: block; margin-bottom: 5px; }
