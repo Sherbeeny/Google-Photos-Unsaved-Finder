@@ -102,9 +102,10 @@ describe('Userscript Core Logic', () => {
         expect(result.data.mediaKey).toBe('photo_shared_1');
     });
 
+
     it('should handle errors when getting item info', async () => {
         mockFetch.mockRejectedValueOnce(new Error('Network error'));
-        const result = await userscript.getItemInfo(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, 'photo_1');
+        const result = await userscript.getItemInfo(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, 'photo_1', false);
         expect(result.success).toBe(false);
         expect(result.error).toBe('Network error');
     });
@@ -212,6 +213,27 @@ describe('Userscript Core Logic', () => {
         expect(requestBody).not.toContain('photo_p_saved');
     });
 
+    it('should handle a null response from getItemInfo without crashing', async () => {
+        const log = jest.fn();
+        const getUiState = () => ({
+            selectedAlbums: [{ mediaKey: 'album_id_1', isShared: false, title: 'Test Album' }],
+            filter: 'not-saved',
+            destinationAlbum: { mediaKey: 'album_id_2', isShared: false },
+        });
+
+        const albumPageData = [null, [['photo_1']]];
+
+        mockFetch
+            .mockResolvedValueOnce(createMockApiResponse('snAcKc', albumPageData)) // getAlbumPage
+            .mockResolvedValueOnce(createMockApiResponse('VrseUb', null)); // getItemInfo returns null
+
+        await userscript.startProcessing(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, log, getUiState);
+
+        expect(log).toHaveBeenCalledWith(expect.stringContaining('Error getting item info:'));
+        expect(log).toHaveBeenCalledWith(expect.stringContaining('API returned null or undefined response for item.'));
+    });
+
+
     it('should handle empty selected albums in processing', async () => {
         const log = jest.fn();
         const getUiState = () => ({
@@ -241,14 +263,14 @@ describe('Userscript Core Logic', () => {
     it('should log a failure message when adding items fails silently', async () => {
         const log = jest.fn();
         const getUiState = () => ({
-            selectedAlbums: ['album_id_1'],
+            selectedAlbums: [{ mediaKey: 'album_id_1', isShared: false, title: 'Test Album' }],
             filter: 'not-saved',
             destinationAlbum: { mediaKey: 'album_id_2', isShared: true },
         });
 
         // Mock the sequence of fetch calls
         const albumPageData = [null, [['photo_1_unsaved']]];
-        const itemInfoUnsaved = [ ['photo_1_unsaved', null, null, null, null, null, null, null, null, null, null, null, null, null, null, {'163238866': []}] ];
+        const itemInfoUnsaved = [ ['photo_1_unsaved'] ];
 
         mockFetch
             .mockResolvedValueOnce(createMockApiResponse('snAcKc', albumPageData)) // getAlbumPage
@@ -266,42 +288,39 @@ describe('Userscript Core Logic', () => {
     // --- Testing Parsers ---
     describe('Parsers', () => {
         it('albumParse should correctly identify a private album', () => {
-            // This mock data is designed to make the OLD logic fail.
-            // A private album won't have sharing info at index 7.
-            // However, the old logic incorrectly checks the last element's metadata (`[4]`), which can be true
-            // for reasons other than sharing, causing a private album to be treated as shared.
             const mockPrivateAlbumData = [
-                "album_id_private",
-                ["thumbnail_url"], null, null, null, null, null,
-                // No element at index 7, which is what the NEW logic will correctly check for.
-                { "72930366": [null, "Private Album Title", null, 42, true] } // Old logic sees `true` here and fails.
+                "album_id_private", ["thumbnail_url"], null, null, null, null, null,
+                { "72930366": [null, "Private Album Title", null, 42, true] }
             ];
             const parsed = userscript.albumParse(mockPrivateAlbumData);
             expect(parsed.isShared).toBe(false);
         });
 
         it('itemInfoParse should correctly identify a saved item via new logic', () => {
-            // This mock data represents a saved item that the old logic misses.
-            // The old logic checks `[15][163238866]`, which is absent here.
-            // The new logic correctly identifies the item as saved by the presence of the `[5]` array.
             const mockSavedItemData = [
-                [
-                    "item_id_saved",
-                    null, null, null, null,
-                    [], // Index 5: Presence of this array indicates "saved"
-                    null, null, null, null, null, null, null, null, null,
-                    {} // Index 15: The old check looks here and fails
-                ]
+                [ "item_id_saved", null, null, null, null, [], null, null, null, null, null, null, null, null, null, {} ]
             ];
             const parsed = userscript.itemInfoParse(mockSavedItemData);
             expect(parsed.savedToYourPhotos).toBe(true);
+        });
+
+        it('itemInfoSharedParse should correctly identify a saved item', () => {
+            const mockSavedItemData = [ "item_id_saved", null, null, null, null, [[["some_value"]]] ];
+            const parsed = userscript.itemInfoSharedParse(mockSavedItemData);
+            expect(parsed.savedToYourPhotos).toBe(true);
+        });
+
+        it('itemInfoSharedParse should correctly identify an unsaved item', () => {
+            const mockUnsavedItemData = [ "item_id_unsaved", null, null, null, null, null ];
+            const parsed = userscript.itemInfoSharedParse(mockUnsavedItemData);
+            expect(parsed.savedToYourPhotos).toBe(false);
         });
     });
 
     it('should batch additions to albums in chunks of 50', async () => {
         const log = jest.fn();
         const getUiState = () => ({
-            selectedAlbums: ['album_id_1'],
+            selectedAlbums: [{ mediaKey: 'album_id_1', isShared: true, title: 'Test Album' }],
             filter: 'not-saved',
             destinationAlbum: { mediaKey: 'album_id_2', isShared: true },
         });
@@ -312,7 +331,8 @@ describe('Userscript Core Logic', () => {
         // Mock the API calls
         mockFetch.mockResolvedValueOnce(createMockApiResponse('snAcKc', [null, mockItems])); // getAlbumPage
         for (let i = 0; i < 75; i++) {
-            mockFetch.mockResolvedValueOnce(createMockApiResponse('VrseUb', [ [`photo_${i}`] ])); // getItemInfo
+            // Mocking as unsaved for a shared album
+            mockFetch.mockResolvedValueOnce(createMockApiResponse('fDcn4b', [[ `photo_${i}`, null, null, null, null, null ]]));
         }
         mockFetch.mockResolvedValueOnce(createMockApiResponse('laUYf', null)); // addItemsToSharedAlbum
         mockFetch.mockResolvedValueOnce(createMockApiResponse('laUYf', null)); // addItemsToSharedAlbum

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Unsaved Finder
 // @namespace    http://tampermonkey.net/
-// @version      2025.12.20-2245
+// @version      2025.12.22-0022
 // @description  A userscript to find unsaved photos in Google Photos albums.
 // @author       Sherbeeny (via Jules the AI Agent)
 // @match        https://photos.google.com/*
@@ -64,18 +64,18 @@
         savedToYourPhotos: Array.isArray(itemData[0]?.[5]),
       };
     }
-function itemInfoSharedParse(itemData) {
-  return {
-    mediaKey: itemData[0],
-    // According to GPTK, check for the presence of a value at this path.
-    savedToYourPhotos: !!(itemData?.[5]?.[0]?.[0]),
-  };
-}
+    function itemInfoSharedParse(itemData) {
+      return {
+        mediaKey: itemData[0],
+        // According to GPTK, check for the presence of a value at this path.
+        savedToYourPhotos: !!(itemData?.[5]?.[0]?.[0]),
+      };
+    }
     function parser(data, rpcid) {
       if (rpcid === 'Z5xsfc') return albumsPage(data);
       if (rpcid === 'snAcKc') return albumItemsPage(data);
       if (rpcid === 'VrseUb') return itemInfoParse(data);
-  if (rpcid === 'fDcn4b') return itemInfoSharedParse(data);
+      if (rpcid === 'fDcn4b') return itemInfoSharedParse(data);
       return null;
     }
 
@@ -132,20 +132,26 @@ function itemInfoSharedParse(itemData) {
       }
     }
 
-async function getItemInfo(fetch, windowGlobalData, sourcePath, mediaKey, isShared) {
-    const rpcid = isShared ? 'fDcn4b' : 'VrseUb';
-    const requestData = isShared ? [null, mediaKey] : [mediaKey, null, null, null, null];
-    try {
-        const response = await makeApiRequest(fetch, windowGlobalData, rpcid, requestData, sourcePath);
-        // The shared endpoint has a different response structure. The actual item data is nested one level deeper.
-        const dataToParse = isShared ? response[0] : response;
-        const parsed = parser(dataToParse, rpcid);
-        if (parsed) {
-            return { success: true, data: parsed };
-        }
-        return { success: false, error: 'Failed to parse item info.', data: response };
-    } catch (error) {
-        return { success: false, error: error.message };
+    async function getItemInfo(fetch, windowGlobalData, sourcePath, mediaKey, isShared) {
+        const rpcid = isShared ? 'fDcn4b' : 'VrseUb';
+        const requestData = isShared ? [null, mediaKey] : [mediaKey, null, null, null, null];
+        try {
+            const response = await makeApiRequest(fetch, windowGlobalData, rpcid, requestData, sourcePath);
+            if (!response) {
+                return { success: false, error: 'API returned null or undefined response for item.', data: response };
+            }
+            // The shared endpoint has a different response structure. The actual item data is nested one level deeper.
+            const dataToParse = isShared ? response[0] : response;
+            if (!dataToParse) {
+                return { success: false, error: 'API returned null or undefined response for item.', data: response };
+            }
+            const parsed = parser(dataToParse, rpcid);
+            if (parsed) {
+                return { success: true, data: parsed };
+            }
+            return { success: false, error: 'Failed to parse item info.', data: response };
+        } catch (error) {
+            return { success: false, error: error.message };
         }
     }
 
@@ -179,81 +185,81 @@ async function getItemInfo(fetch, windowGlobalData, sourcePath, mediaKey, isShar
     }
 
     async function startProcessing(fetch, windowGlobalData, sourcePath, log, getUiState) {
-    const { selectedAlbums, filter, destinationAlbum } = getUiState();
+        const { selectedAlbums, filter, destinationAlbum } = getUiState();
 
-    if (selectedAlbums.length === 0) { log('No source albums selected.'); return; }
-    if (!destinationAlbum) { log('No destination album selected.'); return; }
+        if (selectedAlbums.length === 0) { log('No source albums selected.'); return; }
+        if (!destinationAlbum) { log('No destination album selected.'); return; }
 
-    log('Starting processing...');
-    const matchedItems = [];
-    let totalItemsScanned = 0;
+        log('Starting processing...');
+        const matchedItems = [];
+        let totalItemsScanned = 0;
 
-    for (const album of selectedAlbums) {
-        log(`Fetching media items from album: ${album.title}...`);
-        let nextPageId = null;
-        let itemsInAlbum = 0;
-        const albumMediaItems = [];
+        for (const album of selectedAlbums) {
+            log(`Fetching media items from album: ${album.title}...`);
+            let nextPageId = null;
+            let itemsInAlbum = 0;
+            const albumMediaItems = [];
 
-        do {
-            const pageResult = await getAlbumPage(fetch, windowGlobalData, sourcePath, album.mediaKey, nextPageId);
-            if (!pageResult.success) {
-                log(`Error fetching page from album ${album.title}: ${pageResult.error}. Response: ${JSON.stringify(pageResult.data)}`);
-                break;
-            }
-            albumMediaItems.push(...pageResult.data.items);
-            itemsInAlbum += pageResult.data.items.length;
-            nextPageId = pageResult.data.nextPageId;
-        } while (nextPageId);
-
-        log(`Found ${itemsInAlbum} items in album. Checking their status...`);
-        totalItemsScanned += itemsInAlbum;
-
-        const batchSize = 20; // Batching for getItemInfo calls
-        for (let i = 0; i < albumMediaItems.length; i += batchSize) {
-            const batch = albumMediaItems.slice(i, i + batchSize);
-            const promises = batch.map(item => getItemInfo(fetch, windowGlobalData, sourcePath, item.mediaKey, album.isShared));
-            const itemInfoResults = await Promise.all(promises);
-
-            for (const result of itemInfoResults) {
-                if (!result.success) {
-                    log(`Error getting item info: ${result.error}. Response: ${JSON.stringify(result.data)}`);
-                    continue;
+            do {
+                const pageResult = await getAlbumPage(fetch, windowGlobalData, sourcePath, album.mediaKey, nextPageId);
+                if (!pageResult.success) {
+                    log(`Error fetching page from album ${album.title}: ${pageResult.error}. Response: ${JSON.stringify(pageResult.data)}`);
+                    break;
                 }
-                const info = result.data;
-                let match = false;
-                if (filter === 'saved' && info.savedToYourPhotos) match = true;
-                if (filter === 'not-saved' && !info.savedToYourPhotos) match = true;
-                if (filter === 'any') match = true;
-                if (match) matchedItems.push(info.mediaKey);
+                albumMediaItems.push(...pageResult.data.items);
+                itemsInAlbum += pageResult.data.items.length;
+                nextPageId = pageResult.data.nextPageId;
+            } while (nextPageId);
+
+            log(`Found ${itemsInAlbum} items in album. Checking their status...`);
+            totalItemsScanned += itemsInAlbum;
+
+            const batchSize = 20; // Batching for getItemInfo calls
+            for (let i = 0; i < albumMediaItems.length; i += batchSize) {
+                const batch = albumMediaItems.slice(i, i + batchSize);
+                const promises = batch.map(item => getItemInfo(fetch, windowGlobalData, sourcePath, item.mediaKey, album.isShared));
+                const itemInfoResults = await Promise.all(promises);
+
+                for (const result of itemInfoResults) {
+                    if (!result.success) {
+                        log(`Error getting item info: ${result.error}. Response: ${JSON.stringify(result.data)}`);
+                        continue;
+                    }
+                    const info = result.data;
+                    let match = false;
+                    if (filter === 'saved' && info.savedToYourPhotos) match = true;
+                    if (filter === 'not-saved' && !info.savedToYourPhotos) match = true;
+                    if (filter === 'any') match = true;
+                    if (match) matchedItems.push(info.mediaKey);
+                }
+            }
+        }
+
+        log(`Scanned ${totalItemsScanned} total items across all selected albums.`);
+        log(`Found ${matchedItems.length} matching items.`);
+
+        if (matchedItems.length > 0) {
+            log(`Adding ${matchedItems.length} items to destination album...`);
+
+            const addBatchSize = 50; // Batching for adding items to album
+            for (let i = 0; i < matchedItems.length; i += addBatchSize) {
+                const batch = matchedItems.slice(i, i + addBatchSize);
+                log(`Adding batch of ${batch.length} items...`);
+                let addResult;
+                if (destinationAlbum.isShared) {
+                    addResult = await addItemsToSharedAlbum(fetch, windowGlobalData, sourcePath, batch, destinationAlbum.mediaKey);
+                } else {
+                    addResult = await addItemsToNonSharedAlbum(fetch, windowGlobalData, sourcePath, batch, destinationAlbum.mediaKey);
+                }
+
+                if (addResult.success) {
+                    log(`Successfully added batch of ${batch.length} items.`);
+                } else {
+                    log(`Error: Failed to add batch of ${batch.length} items. ${addResult.error}. Response: ${JSON.stringify(addResult.data)}`);
+                }
             }
         }
     }
-
-    log(`Scanned ${totalItemsScanned} total items across all selected albums.`);
-    log(`Found ${matchedItems.length} matching items.`);
-
-    if (matchedItems.length > 0) {
-        log(`Adding ${matchedItems.length} items to destination album...`);
-
-        const addBatchSize = 50; // Batching for adding items to album
-        for (let i = 0; i < matchedItems.length; i += addBatchSize) {
-            const batch = matchedItems.slice(i, i + addBatchSize);
-            log(`Adding batch of ${batch.length} items...`);
-            let addResult;
-            if (destinationAlbum.isShared) {
-                addResult = await addItemsToSharedAlbum(fetch, windowGlobalData, sourcePath, batch, destinationAlbum.mediaKey);
-            } else {
-                addResult = await addItemsToNonSharedAlbum(fetch, windowGlobalData, sourcePath, batch, destinationAlbum.mediaKey);
-            }
-
-            if (addResult.success) {
-                log(`Successfully added batch of ${batch.length} items.`);
-            } else {
-                log(`Error: Failed to add batch of ${batch.length} items. ${addResult.error}. Response: ${JSON.stringify(addResult.data)}`);
-            }
-        }
-    }
-}
 
     // --- UI Layer (Remains coupled to the DOM and Tampermonkey) ---
     function createUI(doc = document) {
@@ -468,7 +474,8 @@ async function getItemInfo(fetch, windowGlobalData, sourcePath, mediaKey, isShar
             albumsPage,
             albumItemParse,
             albumItemsPage,
-            itemInfoParse
+            itemInfoParse,
+            itemInfoSharedParse
         };
     }
 

@@ -1,8 +1,9 @@
-## [2025.12.20-2245] - 2025-12-20
+## [2025.12.22-0022] - 2025-12-22
 
 ### Fixed
-- Correctly identifies saved items in shared albums by using a different API endpoint.
+- Correctly identifies saved items in shared albums by using a different, more reliable API endpoint.
 - Prevents silent failures when adding large numbers of items to an album by processing them in batches of 50.
+- Prevents the script from crashing when processing large albums by gracefully handling intermittent null responses from the Google Photos API.
 - Corrected a misleading log message that appeared when processing multiple source albums.
 
 ### Changed
@@ -11,15 +12,6 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
-
-## [2025.12.20-1809] - 2025-12-20
-
-### Fixed
-- Corrected the logic for detecting saved items, which was failing to identify manually saved photos.
-- Fixed the logic for identifying shared albums, which was causing errors when adding items to private albums.
-
-### Changed
-- The "Albums to search" list is now scrollable and has a maximum height of five lines (`5.5em`).
 
 ## [2025.12.19-0307] - 2025-12-19
 
