@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Unsaved Finder
 // @namespace    http://tampermonkey.net/
-// @version      2025.12.20-1911
+// @version      2025.12.20-2245
 // @description  A userscript to find unsaved photos in Google Photos albums.
 // @author       Sherbeeny (via Jules the AI Agent)
 // @match        https://photos.google.com/*
@@ -64,10 +64,18 @@
         savedToYourPhotos: Array.isArray(itemData[0]?.[5]),
       };
     }
+function itemInfoSharedParse(itemData) {
+  return {
+    mediaKey: itemData[0],
+    // According to GPTK, check for the presence of a value at this path.
+    savedToYourPhotos: !!(itemData?.[5]?.[0]?.[0]),
+  };
+}
     function parser(data, rpcid) {
       if (rpcid === 'Z5xsfc') return albumsPage(data);
       if (rpcid === 'snAcKc') return albumItemsPage(data);
       if (rpcid === 'VrseUb') return itemInfoParse(data);
+  if (rpcid === 'fDcn4b') return itemInfoSharedParse(data);
       return null;
     }
 
@@ -124,19 +132,21 @@
       }
     }
 
-    async function getItemInfo(fetch, windowGlobalData, sourcePath, mediaKey) {
-      const rpcid = 'VrseUb';
-      const requestData = [mediaKey, null, null, null, null];
-      try {
+async function getItemInfo(fetch, windowGlobalData, sourcePath, mediaKey, isShared) {
+    const rpcid = isShared ? 'fDcn4b' : 'VrseUb';
+    const requestData = isShared ? [null, mediaKey] : [mediaKey, null, null, null, null];
+    try {
         const response = await makeApiRequest(fetch, windowGlobalData, rpcid, requestData, sourcePath);
-        const parsed = parser(response, rpcid);
+        // The shared endpoint has a different response structure. The actual item data is nested one level deeper.
+        const dataToParse = isShared ? response[0] : response;
+        const parsed = parser(dataToParse, rpcid);
         if (parsed) {
-          return { success: true, data: parsed };
+            return { success: true, data: parsed };
         }
         return { success: false, error: 'Failed to parse item info.', data: response };
-      } catch (error) {
+    } catch (error) {
         return { success: false, error: error.message };
-      }
+        }
     }
 
     async function addItemsToSharedAlbum(fetch, windowGlobalData, sourcePath, mediaKeyArray, albumMediaKey) {
@@ -169,35 +179,39 @@
     }
 
     async function startProcessing(fetch, windowGlobalData, sourcePath, log, getUiState) {
-        const { selectedAlbums, filter, destinationAlbum } = getUiState();
+    const { selectedAlbums, filter, destinationAlbum } = getUiState();
 
-        if (selectedAlbums.length === 0) { log('No source albums selected.'); return; }
-        if (!destinationAlbum) { log('No destination album selected.'); return; }
+    if (selectedAlbums.length === 0) { log('No source albums selected.'); return; }
+    if (!destinationAlbum) { log('No destination album selected.'); return; }
 
-        log('Starting processing...');
-        const allMediaItems = [];
+    log('Starting processing...');
+    const matchedItems = [];
+    let totalItemsScanned = 0;
 
-        for (const albumId of selectedAlbums) {
-            log(`Fetching media items from album ${albumId}...`);
-            let nextPageId = null;
-            do {
-                const pageResult = await getAlbumPage(fetch, windowGlobalData, sourcePath, albumId, nextPageId);
-                if (!pageResult.success) {
-                    log(`Error fetching page from album ${albumId}: ${pageResult.error}. Response: ${JSON.stringify(pageResult.data)}`);
-                    break;
-                }
-                allMediaItems.push(...pageResult.data.items);
-                nextPageId = pageResult.data.nextPageId;
-            } while (nextPageId);
-            log(`Found ${allMediaItems.length} total items in album.`);
-        }
-        log(`Found ${allMediaItems.length} total items across all selected albums.`);
+    for (const album of selectedAlbums) {
+        log(`Fetching media items from album: ${album.title}...`);
+        let nextPageId = null;
+        let itemsInAlbum = 0;
+        const albumMediaItems = [];
 
-        const matchedItems = [];
-        const batchSize = 20;
-        for (let i = 0; i < allMediaItems.length; i += batchSize) {
-            const batch = allMediaItems.slice(i, i + batchSize);
-            const promises = batch.map(item => getItemInfo(fetch, windowGlobalData, sourcePath, item.mediaKey));
+        do {
+            const pageResult = await getAlbumPage(fetch, windowGlobalData, sourcePath, album.mediaKey, nextPageId);
+            if (!pageResult.success) {
+                log(`Error fetching page from album ${album.title}: ${pageResult.error}. Response: ${JSON.stringify(pageResult.data)}`);
+                break;
+            }
+            albumMediaItems.push(...pageResult.data.items);
+            itemsInAlbum += pageResult.data.items.length;
+            nextPageId = pageResult.data.nextPageId;
+        } while (nextPageId);
+
+        log(`Found ${itemsInAlbum} items in album. Checking their status...`);
+        totalItemsScanned += itemsInAlbum;
+
+        const batchSize = 20; // Batching for getItemInfo calls
+        for (let i = 0; i < albumMediaItems.length; i += batchSize) {
+            const batch = albumMediaItems.slice(i, i + batchSize);
+            const promises = batch.map(item => getItemInfo(fetch, windowGlobalData, sourcePath, item.mediaKey, album.isShared));
             const itemInfoResults = await Promise.all(promises);
 
             for (const result of itemInfoResults) {
@@ -213,27 +227,33 @@
                 if (match) matchedItems.push(info.mediaKey);
             }
         }
-        log(`Found ${matchedItems.length} matching items.`);
+    }
 
-        if (matchedItems.length > 0) {
-            log(`Adding ${matchedItems.length} items to destination album...`);
+    log(`Scanned ${totalItemsScanned} total items across all selected albums.`);
+    log(`Found ${matchedItems.length} matching items.`);
 
+    if (matchedItems.length > 0) {
+        log(`Adding ${matchedItems.length} items to destination album...`);
+
+        const addBatchSize = 50; // Batching for adding items to album
+        for (let i = 0; i < matchedItems.length; i += addBatchSize) {
+            const batch = matchedItems.slice(i, i + addBatchSize);
+            log(`Adding batch of ${batch.length} items...`);
             let addResult;
             if (destinationAlbum.isShared) {
-                log('Destination is a shared album.');
-                addResult = await addItemsToSharedAlbum(fetch, windowGlobalData, sourcePath, matchedItems, destinationAlbum.mediaKey);
+                addResult = await addItemsToSharedAlbum(fetch, windowGlobalData, sourcePath, batch, destinationAlbum.mediaKey);
             } else {
-                log('Destination is a non-shared album.');
-                addResult = await addItemsToNonSharedAlbum(fetch, windowGlobalData, sourcePath, matchedItems, destinationAlbum.mediaKey);
+                addResult = await addItemsToNonSharedAlbum(fetch, windowGlobalData, sourcePath, batch, destinationAlbum.mediaKey);
             }
 
             if (addResult.success) {
-                log('Successfully added items to the album.');
+                log(`Successfully added batch of ${batch.length} items.`);
             } else {
-                log(`Error: Failed to add items to the album. ${addResult.error}. Response: ${JSON.stringify(addResult.data)}`);
+                log(`Error: Failed to add batch of ${batch.length} items. ${addResult.error}. Response: ${JSON.stringify(addResult.data)}`);
             }
         }
     }
+}
 
     // --- UI Layer (Remains coupled to the DOM and Tampermonkey) ---
     function createUI(doc = document) {
@@ -393,9 +413,10 @@
       const getUiState = () => {
         const selectedDestinationOption = destinationSelect.options[destinationSelect.selectedIndex];
         const destinationAlbum = selectedDestinationOption ? albumsCache.find(a => a.mediaKey === selectedDestinationOption.value) : null;
+        const selectedAlbumKeys = Array.from(albumList.querySelectorAll('input:checked')).map(input => input.value);
 
         return {
-            selectedAlbums: Array.from(albumList.querySelectorAll('input:checked')).map(input => input.value),
+            selectedAlbums: albumsCache.filter(a => selectedAlbumKeys.includes(a.mediaKey)),
             filter: filterControls.querySelector('input[name="filter"]:checked').value,
             destinationAlbum: destinationAlbum,
         };

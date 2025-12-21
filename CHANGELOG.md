@@ -1,3 +1,13 @@
+## [2025.12.20-2245] - 2025-12-20
+
+### Fixed
+- Correctly identifies saved items in shared albums by using a different API endpoint.
+- Prevents silent failures when adding large numbers of items to an album by processing them in batches of 50.
+- Corrected a misleading log message that appeared when processing multiple source albums.
+
+### Changed
+- The 'Albums to search' list in the UI is now a fixed height (5 lines) and will scroll if the content overflows.
+
 # Changelog
 
 All notable changes to this project will be documented in this file.

@@ -43,3 +43,5 @@ pnpm test
 This userscript interacts with the internal, undocumented API of Google Photos. As such, it is inherently fragile and may break if Google makes changes to their frontend or API data structures.
 
 The logic for determining an item's status (e.g., "saved to library") or an album's properties (e.g., "is shared") relies on parsing these internal data structures. The current implementation uses the most reliable data points known as of the last update to perform these checks.
+
+Notably, the script now uses a more accurate API endpoint to determine the "saved" status of items within shared albums, which was a source of errors in previous versions.
