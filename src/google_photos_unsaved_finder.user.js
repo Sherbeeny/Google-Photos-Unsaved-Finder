@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Unsaved Finder
 // @namespace    http://tampermonkey.net/
-// @version      2025.12.22-1754
+// @version      2025.12.22-1951
 // @description  A userscript to find unsaved photos in Google Photos albums.
 // @author       Sherbeeny (via Jules the AI Agent)
 // @match        https://photos.google.com/*
@@ -103,11 +103,18 @@
         if (!item) {
             return { mediaKey: null, savedToYourPhotos: false };
         }
-        // The metadata object's position is inconsistent. Check known locations.
-        const infoObject = item[8] || item[9] || item[15];
+        // The metadata object is always the last element in the array that is a plain object.
+        // Search backwards to find it reliably.
+        let infoObject = null;
+        for (let i = item.length - 1; i >= 0; i--) {
+            if (item[i] && typeof item[i] === 'object' && !Array.isArray(item[i])) {
+                infoObject = item[i];
+                break;
+            }
+        }
         return {
             mediaKey: item[0],
-            savedToYourPhotos: infoObject && typeof infoObject === 'object' && infoObject.hasOwnProperty('163238866'),
+            savedToYourPhotos: infoObject && infoObject.hasOwnProperty('163238866'),
         };
     }
 
@@ -358,7 +365,7 @@
                             addResult = await addItemsToNonSharedAlbum(fetch, windowGlobalData, sourcePath, batch, destinationAlbum.mediaKey);
                         }
 
-                        // Based on GPTK analysis, only an array response indicates success.
+                        // A successful response is an array. Any other response, including null, is an error.
                         if (Array.isArray(addResult)) {
                             log(`Batch ${batchNumber} added successfully.`);
                         } else {

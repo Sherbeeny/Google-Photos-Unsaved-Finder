@@ -32,7 +32,7 @@ describe('Userscript Core Logic', () => {
     });
 
     // --- Testing Parsers with new robust logic ---
-    describe('itemInfoParse', () => {
+    describe('itemInfoParse (Robust Detection)', () => {
 
         it('should correctly identify a SAVED item (key at index 8)', () => {
             const mockSavedItemData = [
@@ -83,7 +83,7 @@ describe('Userscript Core Logic', () => {
 
     // --- Testing the Main Processing Function ---
 
-    it('should execute full logic, find unsaved items, and log success on NON-SHARED album add', async () => {
+    it('should execute full logic and log success on NON-SHARED album add', async () => {
         const log = jest.fn();
         const getUiState = () => ({
             selectedAlbums: [{ mediaKey: 'album_id_1', isShared: false, title: 'Test Album' }],
@@ -95,7 +95,6 @@ describe('Userscript Core Logic', () => {
             ['photo_unsaved'],
             ['photo_saved']
         ]];
-        // Mock with the key at index 8
         const itemInfoSaved = [
             ["photo_saved", null, null, null, null, null, null, null, { "163238866": [] }]
         ];
@@ -137,7 +136,6 @@ describe('Userscript Core Logic', () => {
 
         await userscript.startProcessing(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, log, getUiState);
 
-        // Check logs for the new, stricter error handling
         expect(log).toHaveBeenCalledWith('Adding batch 1 of 1 items...');
         expect(log).toHaveBeenCalledWith(`Error adding batch 1. Unexpected API Response: ${JSON.stringify(unexpectedApiResponse, null, 2)}`);
     });
