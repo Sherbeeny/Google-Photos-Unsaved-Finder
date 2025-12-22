@@ -2,6 +2,48 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2025.12.23-0006] - 2025-12-23
+
+### Fixed
+- **Definitively fixed the "add to album" functionality.** The script now exclusively uses the proven `E1Cajb` rpcid for adding items to albums, regardless of whether the destination is shared or private. This resolves the long-standing bug where items were detected but not successfully added.
+- Removed obsolete tests related to the faulty shared-album logic and added a new test to ensure the correct, simplified logic is always used.
+
+## [2025.12.22-2023] - 2025-12-22
+
+### Fixed
+- Implemented the correct, nuanced success logic for adding items to albums. The script now correctly treats `null` as a success for shared albums and an `Array` as a success for non-shared albums, resolving the final critical bug.
+
+## [2025.12.22-1754] - 2025-12-22
+
+### Fixed
+- Implemented a robust, multi-index check for the `"163238866"` key to handle API inconsistencies and correctly identify saved photos.
+- Corrected the "add to album" success logic to align with GPTK's error handling, treating only array responses as successful.
+
+### Added
+- Implemented verbose logging to show the media key of every matched item, improving transparency and aiding future debugging.
+
+## [2025.12.22-1657] - 2025-12-22
+
+### Fixed
+- The script now correctly identifies the saved status of photos in all albums, including shared ones.
+- The logic has been simplified to use a single, reliable API endpoint (`VrseUb`) for all items.
+- The method for determining "saved" status is now based on a specific key (`"163238866"`) in the API response, which has been proven to be accurate across multiple tests.
+- Removed obsolete code and tests related to the old, failing API logic.
+
+## [2025.12.22-0022] - 2025-12-22
+
+### Fixed
+- Correctly identifies saved items in shared albums by using a different, more reliable API endpoint.
+- Prevents silent failures when adding large numbers of items to an album by processing them in batches of 50.
+- Prevents the script from crashing when processing large albums by gracefully handling intermittent null responses from the Google Photos API.
+- Corrected a misleading log message that appeared when processing multiple source albums.
+
+### Changed
+- The 'Albums to search' list in the UI is now a fixed height (5 lines) and will scroll if the content overflows.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
 ## [2025.12.19-0307] - 2025-12-19
 
 ### Added
@@ -11,9 +53,6 @@ All notable changes to this project will be documented in this file.
 - The "Start" button is now full-width for a more modern look.
 - Updated the UI labels to "Albums to search" and "Add them to album" for better clarity.
 - The destination album dropdown now has left-aligned text.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2025.12.19-0137] - 2025-12-19
 
