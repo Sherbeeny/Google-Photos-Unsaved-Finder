@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Unsaved Finder
 // @namespace    http://tampermonkey.net/
-// @version      2025.12.22-1657
+// @version      2025.12.22-1754
 // @description  A userscript to find unsaved photos in Google Photos albums.
 // @author       Sherbeeny (via Jules the AI Agent)
 // @match        https://photos.google.com/*
@@ -99,10 +99,15 @@
      * @returns {{mediaKey: string, savedToYourPhotos: boolean}} An object with the media key and a boolean indicating if the item is saved.
      */
     function itemInfoParse(itemData) {
-        const infoObject = itemData[0]?.[9];
+        const item = itemData[0];
+        if (!item) {
+            return { mediaKey: null, savedToYourPhotos: false };
+        }
+        // The metadata object's position is inconsistent. Check known locations.
+        const infoObject = item[8] || item[9] || item[15];
         return {
-            mediaKey: itemData[0]?.[0],
-            savedToYourPhotos: infoObject && infoObject.hasOwnProperty('163238866'),
+            mediaKey: item[0],
+            savedToYourPhotos: infoObject && typeof infoObject === 'object' && infoObject.hasOwnProperty('163238866'),
         };
     }
 
@@ -328,6 +333,7 @@
                     if (filter === 'any') isMatch = true;
 
                     if (isMatch) {
+                        log(`Found matching item: ${info.mediaKey}`);
                         matchedItems.push(info.mediaKey);
                     }
                 }
@@ -352,9 +358,8 @@
                             addResult = await addItemsToNonSharedAlbum(fetch, windowGlobalData, sourcePath, batch, destinationAlbum.mediaKey);
                         }
 
-                        // Based on GPTK analysis, a `null` response is a success for shared albums,
-                        // and a response that is an array is a success for non-shared albums.
-                        if ((destinationAlbum.isShared && addResult === null) || (Array.isArray(addResult))) {
+                        // Based on GPTK analysis, only an array response indicates success.
+                        if (Array.isArray(addResult)) {
                             log(`Batch ${batchNumber} added successfully.`);
                         } else {
                             log(`Error adding batch ${batchNumber}. Unexpected API Response: ${JSON.stringify(addResult, null, 2)}`);

@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2025.12.22-1754] - 2025-12-22
+
+### Fixed
+- Implemented a robust, multi-index check for the `"163238866"` key to handle API inconsistencies and correctly identify saved photos.
+- Corrected the "add to album" success logic to align with GPTK's error handling, treating only array responses as successful.
+
+### Added
+- Implemented verbose logging to show the media key of every matched item, improving transparency and aiding future debugging.
+
 ## [2025.12.22-1657] - 2025-12-22
 
 ### Fixed
