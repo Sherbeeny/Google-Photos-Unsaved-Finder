@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2025.12.23-0006] - 2025-12-23
+
+### Fixed
+- **Definitively fixed the "add to album" functionality.** The script now exclusively uses the proven `E1Cajb` rpcid for adding items to albums, regardless of whether the destination is shared or private. This resolves the long-standing bug where items were detected but not successfully added.
+- Removed obsolete tests related to the faulty shared-album logic and added a new test to ensure the correct, simplified logic is always used.
+
 ## [2025.12.22-2023] - 2025-12-22
 
 ### Fixed

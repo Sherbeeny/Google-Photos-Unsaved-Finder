@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Unsaved Finder
 // @namespace    http://tampermonkey.net/
-// @version      2025.12.22-2031
+// @version      2025.12.23-0006
 // @description  A userscript to find unsaved photos in Google Photos albums.
 // @author       Sherbeeny (via Jules the AI Agent)
 // @match        https://photos.google.com/*
@@ -352,17 +352,11 @@
                     const batchNumber = (i / addBatchSize) + 1;
                     log(`Adding batch ${batchNumber} of ${batch.length} items...`);
                     try {
-                        let addResult;
-                        if (destinationAlbum.isShared) {
-                            addResult = await addItemsToSharedAlbum(fetch, windowGlobalData, sourcePath, batch, destinationAlbum.mediaKey);
-                        } else {
-                            addResult = await addItemsToNonSharedAlbum(fetch, windowGlobalData, sourcePath, batch, destinationAlbum.mediaKey);
-                        }
+                        // Per user instruction, always use the non-shared album method which is proven to work.
+                        const addResult = await addItemsToNonSharedAlbum(fetch, windowGlobalData, sourcePath, batch, destinationAlbum.mediaKey);
 
-                        // Handle the nuanced success conditions: `null` for shared, Array for non-shared.
-                        const isSuccess = (destinationAlbum.isShared && addResult === null) || Array.isArray(addResult);
-
-                        if (isSuccess) {
+                        // A successful response for this method is an Array.
+                        if (Array.isArray(addResult)) {
                             log(`Batch ${batchNumber} added successfully.`);
                         } else {
                             log(`Error adding batch ${batchNumber}. Unexpected API Response: ${JSON.stringify(addResult, null, 2)}`);

@@ -106,12 +106,13 @@ describe('Userscript Core Logic', () => {
         expect(log).toHaveBeenCalledWith(`Error adding batch 1. Unexpected API Response: ${JSON.stringify(errorResponse, null, 2)}`);
     });
 
-    it('should log SUCCESS for SHARED album add when response IS null', async () => {
+    it('should ALWAYS use the non-shared method (E1Cajb) even if destination album is shared', async () => {
         const log = jest.fn();
         const getUiState = () => ({
-            selectedAlbums: [{ mediaKey: 'album_id_1', isShared: true, title: 'Test Shared Album' }],
+            selectedAlbums: [{ mediaKey: 'album_id_1', isShared: false, title: 'Test Album' }],
             filter: 'not-saved',
-            destinationAlbum: { mediaKey: 'album_id_dest', isShared: true, title: 'Dest Shared' },
+            // CRITICAL: Destination album is marked as SHARED
+            destinationAlbum: { mediaKey: 'album_id_dest', isShared: true, title: 'Dest Shared Album' },
         });
 
         const albumPage = [null, [['photo_unsaved']]];
@@ -120,33 +121,19 @@ describe('Userscript Core Logic', () => {
         mockFetch
             .mockResolvedValueOnce(createMockApiResponse('snAcKc', albumPage))
             .mockResolvedValueOnce(createMockApiResponse('VrseUb', itemInfoUnsaved))
-            .mockResolvedValueOnce(createMockApiResponse('laUYf', null)); // Null response IS success
+            // Expect the NON-SHARED rpcid 'E1Cajb', not 'laUYf'
+            .mockResolvedValueOnce(createMockApiResponse('E1Cajb', [1])); // Array response
 
         await userscript.startProcessing(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, log, getUiState);
+
+        // Verify the correct rpcid was used by checking the fetch call details
+        const fetchCall = mockFetch.mock.calls.find(call => call[0].includes('rpcids=E1Cajb'));
+        expect(fetchCall).toBeDefined();
+
+        const fetchCallForShared = mockFetch.mock.calls.find(call => call[0].includes('rpcids=laUYf'));
+        expect(fetchCallForShared).toBeUndefined(); // Ensure the shared method was NOT called
 
         expect(log).toHaveBeenCalledWith('Batch 1 added successfully.');
-    });
-
-    it('should log ERROR for SHARED album add when response is NOT null', async () => {
-        const log = jest.fn();
-        const getUiState = () => ({
-            selectedAlbums: [{ mediaKey: 'album_id_1', isShared: true, title: 'Test Shared Album' }],
-            filter: 'not-saved',
-            destinationAlbum: { mediaKey: 'album_id_dest', isShared: true, title: 'Dest Shared' },
-        });
-
-        const albumPage = [null, [['photo_unsaved']]];
-        const itemInfoUnsaved = [["photo_unsaved", null, null, null, null, null, null, null, { "15": 123 }]];
-        const errorResponse = { "error": "not null" }; // A non-null response is an error
-
-        mockFetch
-            .mockResolvedValueOnce(createMockApiResponse('snAcKc', albumPage))
-            .mockResolvedValueOnce(createMockApiResponse('VrseUb', itemInfoUnsaved))
-            .mockResolvedValueOnce(createMockApiResponse('laUYf', errorResponse));
-
-        await userscript.startProcessing(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, log, getUiState);
-
-        expect(log).toHaveBeenCalledWith(`Error adding batch 1. Unexpected API Response: ${JSON.stringify(errorResponse, null, 2)}`);
     });
 
 });
