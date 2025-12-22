@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2025.12.22-2023] - 2025-12-22
+
+### Fixed
+- Implemented the correct, nuanced success logic for adding items to albums. The script now correctly treats `null` as a success for shared albums and an `Array` as a success for non-shared albums, resolving the final critical bug.
+
 ## [2025.12.22-1754] - 2025-12-22
 
 ### Fixed

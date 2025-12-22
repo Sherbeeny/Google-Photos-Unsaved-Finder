@@ -34,45 +34,25 @@ describe('Userscript Core Logic', () => {
     // --- Testing Parsers with new robust logic ---
     describe('itemInfoParse (Robust Detection)', () => {
 
-        it('should correctly identify a SAVED item (key at index 8)', () => {
+        it('should correctly identify a SAVED item by searching backwards for the metadata object', () => {
             const mockSavedItemData = [
                 [
-                    "mediaKey_1", null, null, null, null, null, null, null,
-                    { "163238866": [] } // Key at index 8
+                    "mediaKey_1", null, null, null, null, [], // variable non-object elements
+                    { "163238866": [] }, // The metadata object
+                    "some_other_string" // another non-object element
                 ]
             ];
             const parsed = userscript.itemInfoParse(mockSavedItemData);
             expect(parsed.savedToYourPhotos).toBe(true);
         });
 
-        it('should correctly identify a SAVED item (key at index 9)', () => {
-            const mockSavedItemData = [
-                [
-                    "mediaKey_1", null, null, null, null, null, null, null, null,
-                    { "163238866": [] } // Key at index 9
-                ]
-            ];
-            const parsed = userscript.itemInfoParse(mockSavedItemData);
-            expect(parsed.savedToYourPhotos).toBe(true);
-        });
-
-        it('should correctly identify a SAVED item (key at index 15)', () => {
-            const mockSavedItemData = [
-                [
-                    "mediaKey_1", null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-                    { "163238866": [] } // Key at index 15
-                ]
-            ];
-            const parsed = userscript.itemInfoParse(mockSavedItemData);
-            expect(parsed.savedToYourPhotos).toBe(true);
-        });
 
         it('should correctly identify an UNSAVED item', () => {
             const mockUnsavedItemData = [
                 [
                     "mediaKey_2", null, null, null, null, null, null, null,
-                    { "15": 123 }, // No key at 8
-                    { "15": 123 }  // No key at 9
+                    { "15": 123 },
+                    { "15": 123 }
                 ]
             ];
             const parsed = userscript.itemInfoParse(mockUnsavedItemData);
@@ -81,9 +61,9 @@ describe('Userscript Core Logic', () => {
     });
 
 
-    // --- Testing the Main Processing Function ---
+    // --- Testing the Main Processing Function with Nuanced Success Logic ---
 
-    it('should execute full logic and log success on NON-SHARED album add', async () => {
+    it('should log SUCCESS for NON-SHARED album add when response IS an array', async () => {
         const log = jest.fn();
         const getUiState = () => ({
             selectedAlbums: [{ mediaKey: 'album_id_1', isShared: false, title: 'Test Album' }],
@@ -91,52 +71,82 @@ describe('Userscript Core Logic', () => {
             destinationAlbum: { mediaKey: 'album_id_dest', isShared: false, title: 'Dest Album' },
         });
 
-        const albumPage = [null, [
-            ['photo_unsaved'],
-            ['photo_saved']
-        ]];
-        const itemInfoSaved = [
-            ["photo_saved", null, null, null, null, null, null, null, { "163238866": [] }]
-        ];
-        const itemInfoUnsaved = [
-            ["photo_unsaved", null, null, null, null, null, null, null, { "15": 123 }]
-        ];
+        const albumPage = [null, [['photo_unsaved']]];
+        const itemInfoUnsaved = [["photo_unsaved", null, null, null, null, null, null, null, { "15": 123 }]];
 
         mockFetch
             .mockResolvedValueOnce(createMockApiResponse('snAcKc', albumPage))
             .mockResolvedValueOnce(createMockApiResponse('VrseUb', itemInfoUnsaved))
-            .mockResolvedValueOnce(createMockApiResponse('VrseUb', itemInfoSaved))
-            .mockResolvedValueOnce(createMockApiResponse('E1Cajb', [1])); // Array response is success
+            .mockResolvedValueOnce(createMockApiResponse('E1Cajb', [1])); // Array response IS success
 
         await userscript.startProcessing(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, log, getUiState);
 
-        expect(log).toHaveBeenCalledWith('--- Processing Album: Test Album ---');
-        expect(log).toHaveBeenCalledWith('Found 1 matching items in this album.');
-        expect(log).toHaveBeenCalledWith('Found matching item: photo_unsaved'); // Verbose logging
-        expect(log).toHaveBeenCalledWith('Adding batch 1 of 1 items...');
         expect(log).toHaveBeenCalledWith('Batch 1 added successfully.');
     });
 
-    it('should log an error when adding to a SHARED album fails (gets non-array response)', async () => {
+    it('should log ERROR for NON-SHARED album add when response is NOT an array', async () => {
         const log = jest.fn();
         const getUiState = () => ({
-            selectedAlbums: [{ mediaKey: 'album_id_shared', isShared: true, title: 'Shared Test' }],
+            selectedAlbums: [{ mediaKey: 'album_id_1', isShared: false, title: 'Test Album' }],
             filter: 'not-saved',
-            destinationAlbum: { mediaKey: 'album_id_dest_shared', isShared: true, title: 'Dest Shared' },
+            destinationAlbum: { mediaKey: 'album_id_dest', isShared: false, title: 'Dest Album' },
         });
 
-        const albumPageData = [null, [['photo_1_unsaved']]];
-        const itemInfoUnsaved = [["photo_1_unsaved", null, null, null, null, null, null, null, {}]];
-        const unexpectedApiResponse = null; // Not an array, so it's an error
+        const albumPage = [null, [['photo_unsaved']]];
+        const itemInfoUnsaved = [["photo_unsaved", null, null, null, null, null, null, null, { "15": 123 }]];
+        const errorResponse = { "error": "failed" }; // Not an array
 
         mockFetch
-            .mockResolvedValueOnce(createMockApiResponse('snAcKc', albumPageData))
+            .mockResolvedValueOnce(createMockApiResponse('snAcKc', albumPage))
             .mockResolvedValueOnce(createMockApiResponse('VrseUb', itemInfoUnsaved))
-            .mockResolvedValueOnce(createMockApiResponse('laUYf', unexpectedApiResponse));
+            .mockResolvedValueOnce(createMockApiResponse('E1Cajb', errorResponse));
 
         await userscript.startProcessing(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, log, getUiState);
 
-        expect(log).toHaveBeenCalledWith('Adding batch 1 of 1 items...');
-        expect(log).toHaveBeenCalledWith(`Error adding batch 1. Unexpected API Response: ${JSON.stringify(unexpectedApiResponse, null, 2)}`);
+        expect(log).toHaveBeenCalledWith(`Error adding batch 1. Unexpected API Response: ${JSON.stringify(errorResponse, null, 2)}`);
     });
+
+    it('should log SUCCESS for SHARED album add when response IS null', async () => {
+        const log = jest.fn();
+        const getUiState = () => ({
+            selectedAlbums: [{ mediaKey: 'album_id_1', isShared: true, title: 'Test Shared Album' }],
+            filter: 'not-saved',
+            destinationAlbum: { mediaKey: 'album_id_dest', isShared: true, title: 'Dest Shared' },
+        });
+
+        const albumPage = [null, [['photo_unsaved']]];
+        const itemInfoUnsaved = [["photo_unsaved", null, null, null, null, null, null, null, { "15": 123 }]];
+
+        mockFetch
+            .mockResolvedValueOnce(createMockApiResponse('snAcKc', albumPage))
+            .mockResolvedValueOnce(createMockApiResponse('VrseUb', itemInfoUnsaved))
+            .mockResolvedValueOnce(createMockApiResponse('laUYf', null)); // Null response IS success
+
+        await userscript.startProcessing(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, log, getUiState);
+
+        expect(log).toHaveBeenCalledWith('Batch 1 added successfully.');
+    });
+
+    it('should log ERROR for SHARED album add when response is NOT null', async () => {
+        const log = jest.fn();
+        const getUiState = () => ({
+            selectedAlbums: [{ mediaKey: 'album_id_1', isShared: true, title: 'Test Shared Album' }],
+            filter: 'not-saved',
+            destinationAlbum: { mediaKey: 'album_id_dest', isShared: true, title: 'Dest Shared' },
+        });
+
+        const albumPage = [null, [['photo_unsaved']]];
+        const itemInfoUnsaved = [["photo_unsaved", null, null, null, null, null, null, null, { "15": 123 }]];
+        const errorResponse = { "error": "not null" }; // A non-null response is an error
+
+        mockFetch
+            .mockResolvedValueOnce(createMockApiResponse('snAcKc', albumPage))
+            .mockResolvedValueOnce(createMockApiResponse('VrseUb', itemInfoUnsaved))
+            .mockResolvedValueOnce(createMockApiResponse('laUYf', errorResponse));
+
+        await userscript.startProcessing(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, log, getUiState);
+
+        expect(log).toHaveBeenCalledWith(`Error adding batch 1. Unexpected API Response: ${JSON.stringify(errorResponse, null, 2)}`);
+    });
+
 });

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Unsaved Finder
 // @namespace    http://tampermonkey.net/
-// @version      2025.12.22-1951
+// @version      2025.12.22-2031
 // @description  A userscript to find unsaved photos in Google Photos albums.
 // @author       Sherbeeny (via Jules the AI Agent)
 // @match        https://photos.google.com/*
@@ -103,18 +103,12 @@
         if (!item) {
             return { mediaKey: null, savedToYourPhotos: false };
         }
-        // The metadata object is always the last element in the array that is a plain object.
-        // Search backwards to find it reliably.
-        let infoObject = null;
-        for (let i = item.length - 1; i >= 0; i--) {
-            if (item[i] && typeof item[i] === 'object' && !Array.isArray(item[i])) {
-                infoObject = item[i];
-                break;
-            }
-        }
+        // Find the last element in the array which is a plain object. This is the metadata object.
+        const infoObject = [...item].reverse().find(el => el && typeof el === 'object' && !Array.isArray(el));
+
         return {
             mediaKey: item[0],
-            savedToYourPhotos: infoObject && infoObject.hasOwnProperty('163238866'),
+            savedToYourPhotos: infoObject ? infoObject.hasOwnProperty('163238866') : false,
         };
     }
 
@@ -365,8 +359,10 @@
                             addResult = await addItemsToNonSharedAlbum(fetch, windowGlobalData, sourcePath, batch, destinationAlbum.mediaKey);
                         }
 
-                        // A successful response is an array. Any other response, including null, is an error.
-                        if (Array.isArray(addResult)) {
+                        // Handle the nuanced success conditions: `null` for shared, Array for non-shared.
+                        const isSuccess = (destinationAlbum.isShared && addResult === null) || Array.isArray(addResult);
+
+                        if (isSuccess) {
                             log(`Batch ${batchNumber} added successfully.`);
                         } else {
                             log(`Error adding batch ${batchNumber}. Unexpected API Response: ${JSON.stringify(addResult, null, 2)}`);
