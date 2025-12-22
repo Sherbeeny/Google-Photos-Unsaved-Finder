@@ -105,7 +105,7 @@ Ensure initial entry and final entry are accurate; the final entry must remove c
 
 ## PREWORK ROUTINE (updated for TDD)
 Before executing a new plan:
-1. Generate & update timestamp-based version in version files.
+1. **Generate and immediately apply the version number.** The first action MUST be to generate a new timestamp-based version and update the `@version` tag in `src/google_photos_unsaved_finder.user.js`. This is a single, atomic step.
 2. Run package manager commands to sync the lock file. (if there's a lockfile)
 3. Update `AGENT_PROGRESS.md` with the full plan and the tests you will create using the generated version (this is the TDD "red" step — create failing tests).
 4. Create failing tests and commit them (commit message: `test(tdd): add failing tests for <id>`).

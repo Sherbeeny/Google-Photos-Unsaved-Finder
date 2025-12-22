@@ -118,65 +118,66 @@ describe('Userscript Core Logic', () => {
         expect(result.error).toBe('Network error');
     });
 
-    it('should correctly identify saved status based on the presence of a specific key', async () => {
-        // Mock data for an UNSAVED item, missing the key in the final object
-        const mockUnsavedItemData = [
-            [
-                "unsaved_media_key", null, null, null, null, null, null, null, null,
-                { "15": 275865 }
-            ]
+    it('should correctly identify saved status using the correct key', async () => {
+        // This test uses the exact JSON data captured from the browser console.
+        const mockSavedItemData = [
+          [ "AF1QipPeppd0W-oLGHs9BFrucRcmjpzBEFpdWrfcKLeP", [ "https://photos.fife.usercontent.google.com/pw/AP1GczOjsojNoGHndFUbCQZ2Vk-QsFFfDbQBNhPKMHzU9wG4NSYID-weSNPYPw", 3264, 2448, null, null, null, null, null, [ 3264, 2448, 1, null, [ "Google", "Pixel 4a (5G)", null, 2.57, 2, 433, 0.019988, null, 1 ] ], [ 11443334 ], 2, [ [ true, true ] ] ], 1755890376618, "AdoJbsdJ2XfeVyvHqojNONStte0", 10800000, 1756329027020, [ "AF1QipPJypJ3NKuo2T87JcLDnOudz4gG" ], [ [ 2 ], [ 31, false, true ], [ 36, false, true ], [ 8 ], [ 21 ], [ 19 ], [ 22 ] ], 2, { "15": 275865, "163238866": [ false, "AdoJbsdJ2XfeVyvHqojNONStte0" ], "525000000": [ [ 3 ] ], "525000002": [ [ "AF1QipNkIwypdOJFqOJBBdZLG8YLvft2kvdvaPXMU_R_8ZkObhrPIizS-gMlGIdypMJZmw", "AF1QipMUcbNTPku1p3XJbYkeGT3DZbvEDImQLRPlKMEt" ] ] } ], "https://photos.fife.usercontent.google.com/pw/AP1GczOjsojNoGHndFUbCQZ2Vk-QsFFfDbQBNhPKMHzU9wG4NSYID-weSNPYPw=s0-d-ip", [ [ 2 ], [ 31, false, true ], [ 36, false, true ], [ 8 ], [ 21 ], [ 19 ], [ 22 ] ], [ "AF1QipPJypJ3NKuo2T87JcLDnOudz4gG", "112324414726690116755", null, null, null, [ "AF1QipPJypJ3NKuo2T87JcLDnOudz4gG", "112324414726690116755" ], null, null, null, null, null, [ "Muhammad Sherbeeny", 1, null, "Muhammad" ], [ "https://lh3.googleusercontent.com/a/ACg8ocKwvOKVL78fg5Xs0usFNz0aKkTyiefq53Xrx3tNxfM_zc-FNbA" ], null, null, null, null, [ 2 ] ], null, null, null, null, null, null, "", null, "https://photos.fife.usercontent.google.com/pw/AP1GczNcs2azqIhDRKK1sYgu1OPbaDuJu7trY23gfDfbHsxXbvi-xiWaE6o_t3hLiT1psglR2TzlZ8YK7uUOdX_sLQjwW0cXGOw"
         ];
 
-        // Mock data for a SAVED item, containing the key in the final object
-        const mockSavedItemData = [
-            [
-                "saved_media_key", null, null, null, null, null, null, null, null,
-                { "15": 275865, "163238866": [false, "some_id"] }
-            ]
+        const mockUnsavedItemData = [
+          [ "AF1QipMObTO4ZcFTvON4zNK2OqkAl1Yhgkx7QFhyGQDd", [ "https://photos.fife.usercontent.google.com/pw/AP1GczNdWV2d7zBWQX9ZoqNAIV1wk2RyQBbzqzLLOiNjEofCiGedjM6GSzMYFg", 1080, 1913, null, null, null, null, null, [ 1080, 1913, 3 ], [ 3092529 ] ], 1755994085000, "OsLbV2wbkEBTd81Q4b6DabSkuTg", 10800000, 1756329027020, [ "AF1QipPJypJ3NKuo2T87JcLDnOudz4gG" ], [ [ 2 ], [ 31, false, true ], [ 36, false, true ], [ 8 ], [ 21 ], [ 20 ], [ 19 ], [ 22 ] ], 2, { "15": 275865, "525000000": [ [ 1 ] ], "525000002": [ [ "AF1QipNkIwypdOJFqOJBBdZLG8YLvft2kvdvaPXMU_R_8ZkObhrPIizS-gMlGIdypMJZmw", "AF1QipMUcbNTPku1p3XJbYkeGT3DZbvEDImQLRPlKMEt" ] ] } ], "https://photos.fife.usercontent.google.com/pw/AP1GczNdWV2d7zBWQX9ZoqNAIV1wk2RyQBbzqzLLOiNjEofCiGedjM6GSzMYFg=s0-d-ip", [ [ 2 ], [ 31, false, true ], [ 36, false, true ], [ 8 ], [ 21 ], [ 20 ], [ 19 ], [ 22 ] ], [ "AF1QipPJypJ3NKuo2T87JcLDnOudz4gG", "112324414726690116755", null, null, null, [ "AF1QipPJypJ3NKuo2T87JcLDnOudz4gG", "112324414726690116755" ], null, null, null, null, null, [ "Muhammad Sherbeeny", 1, null, "Muhammad" ], [ "https://lh3.googleusercontent.com/a/ACg8ocKwvOKVL78fg5Xs0usFNz0aKkTyiefq53Xrx3tNxfM_zc-FNbA" ], null, null, null, null, [ 2 ] ], null, null, null, null, null, null, "", null, "https://photos.fife.usercontent.google.com/pw/AP1GczN-Zb2Sw25DjoHWMRGTy3QYtM1HIntPGhdvjGO1oDRUhcy9K7Ko5K7Nnp9xySeoNemgtJJgmY5YvMGRi55Nq8km86ATzsU"
         ];
+
 
         mockFetch
-            .mockResolvedValueOnce(createMockApiResponse('VrseUb', mockUnsavedItemData))
-            .mockResolvedValueOnce(createMockApiResponse('VrseUb', mockSavedItemData));
+            .mockResolvedValueOnce(createMockApiResponse('VrseUb', mockSavedItemData))
+            .mockResolvedValueOnce(createMockApiResponse('VrseUb', mockUnsavedItemData));
+
+        // Test saved item. This will fail because the current logic is wrong.
+        const savedResult = await userscript.getItemInfo(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, 'saved_media_key');
+        expect(savedResult.data.savedToYourPhotos).toBe(true);
 
         // Test unsaved item
         const unsavedResult = await userscript.getItemInfo(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, 'unsaved_media_key');
         expect(unsavedResult.data.savedToYourPhotos).toBe(false);
-
-        // Test saved item
-        const savedResult = await userscript.getItemInfo(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, 'saved_media_key');
-        expect(savedResult.data.savedToYourPhotos).toBe(true);
     });
 
     it('should add items to a shared album', async () => {
-        mockFetch.mockResolvedValueOnce(createMockApiResponse('laUYf', null));
+        const mockResponseData = null; // This is what a successful response looks like
+        mockFetch.mockResolvedValueOnce(createMockApiResponse('laUYf', mockResponseData));
+        const log = jest.fn();
 
-        const result = await userscript.addItemsToSharedAlbum(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, ['photo_1'], 'album_id_2');
+        const result = await userscript.addItemsToSharedAlbum(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, ['photo_1'], 'album_id_2', log);
 
         expect(mockFetch).toHaveBeenCalled();
-        expect(result.success).toBe(true);
         const requestBody = mockFetch.mock.calls[0][1].body;
         expect(requestBody).toContain('photo_1');
         expect(requestBody).toContain('album_id_2');
+        expect(result).toEqual(mockResponseData); // Check that the raw response is returned
     });
 
     it('should add items to a non-shared album', async () => {
-        mockFetch.mockResolvedValueOnce(createMockApiResponse('E1Cajb', [1]));
+        const mockResponseData = [1]; // This is what a successful response looks like
+        mockFetch.mockResolvedValueOnce(createMockApiResponse('E1Cajb', mockResponseData));
+        const log = jest.fn();
 
-        const result = await userscript.addItemsToNonSharedAlbum(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, ['photo_1'], 'album_id_2');
+        const result = await userscript.addItemsToNonSharedAlbum(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, ['photo_1'], 'album_id_2', log);
 
         expect(mockFetch).toHaveBeenCalled();
-        expect(result.success).toBe(true);
         const requestBody = mockFetch.mock.calls[0][1].body;
         expect(requestBody).toContain('photo_1');
         expect(requestBody).toContain('album_id_2');
+        expect(result).toEqual(mockResponseData); // Check that the raw response is returned
     });
 
     it('should handle errors when adding items to an album', async () => {
+        // Now that the function doesn't have a try/catch, we expect it to throw.
+        // The calling function `startProcessing` is responsible for catching errors.
         mockFetch.mockRejectedValueOnce(new Error('Network error'));
-        const result = await userscript.addItemsToSharedAlbum(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, ['photo_1'], 'album_id_2');
-        expect(result.success).toBe(false);
-        expect(result.error).toBe('Network error');
+        const log = jest.fn();
+        await expect(
+            userscript.addItemsToSharedAlbum(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, ['photo_1'], 'album_id_2', log)
+        ).rejects.toThrow('Network error');
     });
 
     // --- Testing the main processing function ---
@@ -215,7 +216,9 @@ describe('Userscript Core Logic', () => {
         expect(log).toHaveBeenCalledWith('Scanned 2 total items across all selected albums.');
         expect(log).toHaveBeenCalledWith('Found 1 matching items.');
         expect(log).toHaveBeenCalledWith('Adding 1 items to destination album...');
-        expect(log).toHaveBeenCalledWith('Successfully added batch of 1 items.');
+        // Updated expectation for the diagnostic logging
+        expect(log).toHaveBeenCalledWith(`API Response for batch 1: ${JSON.stringify([1], null, 2)}`);
+        expect(log).toHaveBeenCalledWith('Finished adding all batches.');
 
 
         // Verify that only VrseUb was used for getItemInfo
@@ -246,8 +249,8 @@ describe('Userscript Core Logic', () => {
 
         await userscript.startProcessing(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, log, getUiState);
 
-        expect(log).toHaveBeenCalledWith(expect.stringContaining('Error getting item info:'));
-        expect(log).toHaveBeenCalledWith(expect.stringContaining('API returned null or undefined response for item photo_1'));
+        // The error is now caught inside startProcessing and logged
+        expect(log).toHaveBeenCalledWith('Error getting item info: API returned null or undefined response for item photo_1. rpcid: VrseUb. Response: null');
     });
 
 
@@ -256,7 +259,7 @@ describe('Userscript Core Logic', () => {
         const getUiState = () => ({
             selectedAlbums: [],
             filter: 'not-saved',
-            destination: 'album_id_2',
+            destinationAlbum: 'album_id_2', // Corrected key
         });
 
         await userscript.startProcessing(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, log, getUiState);
@@ -267,9 +270,9 @@ describe('Userscript Core Logic', () => {
     it('should handle empty destination album in processing', async () => {
         const log = jest.fn();
         const getUiState = () => ({
-            selectedAlbums: ['album_id_1'],
+            selectedAlbums: [{ mediaKey: 'album_id_1' }], // Corrected object
             filter: 'not-saved',
-            destination: '',
+            destinationAlbum: null, // Corrected key
         });
 
         await userscript.startProcessing(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, log, getUiState);
@@ -277,7 +280,7 @@ describe('Userscript Core Logic', () => {
         expect(log).toHaveBeenCalledWith('No destination album selected.');
     });
 
-    it('should log a failure message when adding items fails silently', async () => {
+    it('should log the raw response when adding items returns something unexpected', async () => {
         const log = jest.fn();
         const getUiState = () => ({
             selectedAlbums: [{ mediaKey: 'album_id_1', isShared: false, title: 'Test Album' }],
@@ -288,18 +291,18 @@ describe('Userscript Core Logic', () => {
         // Mock the sequence of fetch calls
         const albumPageData = [null, [['photo_1_unsaved']]];
         const itemInfoUnsaved = [[ "photo_1_unsaved", null, null, null, null, null, null, null, null, {} ]];
+        const unexpectedApiResponse = { "error": "something went wrong" }; // Unexpected response
 
         mockFetch
             .mockResolvedValueOnce(createMockApiResponse('snAcKc', albumPageData)) // getAlbumPage
             .mockResolvedValueOnce(createMockApiResponse('VrseUb', itemInfoUnsaved)) // getItemInfo for photo 1
-            .mockResolvedValueOnce(createMockApiResponse('laUYf', [])); // addItemsToSharedAlbum -> SILENT FAILURE
+            .mockResolvedValueOnce(createMockApiResponse('laUYf', unexpectedApiResponse)); // addItemsToSharedAlbum -> UNEXPECTED
 
         await userscript.startProcessing(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, log, getUiState);
 
         // Check logs
         expect(log).toHaveBeenCalledWith('Adding 1 items to destination album...');
-        expect(log).toHaveBeenCalledWith('Error: Failed to add batch of 1 items. API returned an unexpected response.. Response: []');
-        expect(log).not.toHaveBeenCalledWith('Successfully added batch of 1 items.');
+        expect(log).toHaveBeenCalledWith(`API Response for batch 1: ${JSON.stringify(unexpectedApiResponse, null, 2)}`);
     });
 
     // --- Testing Parsers ---
@@ -340,15 +343,17 @@ describe('Userscript Core Logic', () => {
 
         // Create 75 mock items
         const mockItems = Array.from({ length: 75 }, (_, i) => ([`photo_${i}`]));
+        const mockUnsavedItemData = (i) => [[ `photo_${i}`, null, null, null, null, null, null, null, null, {} ]];
 
         // Mock the API calls
         mockFetch.mockResolvedValueOnce(createMockApiResponse('snAcKc', [null, mockItems])); // getAlbumPage
         for (let i = 0; i < 75; i++) {
-            // Mocking as unsaved for a shared album
-            mockFetch.mockResolvedValueOnce(createMockApiResponse('fDcn4b', [[ `photo_${i}`, null, null, null, null, null ]]));
+            // Mocking all items as unsaved
+            mockFetch.mockResolvedValueOnce(createMockApiResponse('VrseUb', mockUnsavedItemData(i)));
         }
-        mockFetch.mockResolvedValueOnce(createMockApiResponse('laUYf', null)); // addItemsToSharedAlbum
-        mockFetch.mockResolvedValueOnce(createMockApiResponse('laUYf', null)); // addItemsToSharedAlbum
+        // Mock the two batch addition calls
+        mockFetch.mockResolvedValueOnce(createMockApiResponse('laUYf', null)); // addItemsToSharedAlbum batch 1
+        mockFetch.mockResolvedValueOnce(createMockApiResponse('laUYf', null)); // addItemsToSharedAlbum batch 2
 
         await userscript.startProcessing(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, log, getUiState);
 

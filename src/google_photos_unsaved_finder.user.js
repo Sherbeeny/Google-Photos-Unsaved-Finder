@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Unsaved Finder
 // @namespace    http://tampermonkey.net/
-// @version      2025.12.22-0412
+// @version      2025.12.22-0448
 // @description  A userscript to find unsaved photos in Google Photos albums.
 // @author       Sherbeeny (via Jules the AI Agent)
 // @match        https://photos.google.com/*
@@ -59,7 +59,6 @@
       };
     }
     function itemInfoParse(itemData) {
-        // Corrected logic: Check for the presence of the "163238866" key in the object at index [0][9].
         const infoObject = itemData[0]?.[9];
         return {
             mediaKey: itemData[0]?.[0],
@@ -144,33 +143,20 @@
         }
     }
 
-    async function addItemsToSharedAlbum(fetch, windowGlobalData, sourcePath, mediaKeyArray, albumMediaKey) {
-      const rpcid = 'laUYf';
-      const requestData = [albumMediaKey, [2, null, mediaKeyArray.map((id) => [[id]]), null, null, null, [1]]];
-      try {
+    async function addItemsToSharedAlbum(fetch, windowGlobalData, sourcePath, mediaKeyArray, albumMediaKey, log) {
+        const rpcid = 'laUYf';
+        const requestData = [albumMediaKey, [2, null, mediaKeyArray.map((id) => [[id]]), null, null, null, [1]]];
+        // The try/catch is removed here. The caller `startProcessing` will handle it.
         const response = await makeApiRequest(fetch, windowGlobalData, rpcid, requestData, sourcePath);
-        // A null response from this RPCID indicates success.
-        if (response === null) {
-          return { success: true, data: response };
-        }
-        return { success: false, error: 'API returned an unexpected response.', data: response };
-      } catch (error) {
-        return { success: false, error: error.message };
-      }
+        return response; // Return the raw response
     }
 
-    async function addItemsToNonSharedAlbum(fetch, windowGlobalData, sourcePath, mediaKeyArray, albumMediaKey) {
-      const rpcid = 'E1Cajb';
-      const requestData = [mediaKeyArray, albumMediaKey];
-      try {
+    async function addItemsToNonSharedAlbum(fetch, windowGlobalData, sourcePath, mediaKeyArray, albumMediaKey, log) {
+        const rpcid = 'E1Cajb';
+        const requestData = [mediaKeyArray, albumMediaKey];
+        // The try/catch is removed here. The caller `startProcessing` will handle it.
         const response = await makeApiRequest(fetch, windowGlobalData, rpcid, requestData, sourcePath);
-        if (Array.isArray(response) && response.length > 0) {
-          return { success: true, data: response };
-        }
-        return { success: false, error: 'API returned an unexpected response for non-shared album.', data: response };
-      } catch (error) {
-        return { success: false, error: error.message };
-      }
+        return response; // Return the raw response
     }
 
     async function startProcessing(fetch, windowGlobalData, sourcePath, log, getUiState) {
@@ -233,20 +219,22 @@
             const addBatchSize = 50; // Batching for adding items to album
             for (let i = 0; i < matchedItems.length; i += addBatchSize) {
                 const batch = matchedItems.slice(i, i + addBatchSize);
-                log(`Adding batch of ${batch.length} items...`);
-                let addResult;
-                if (destinationAlbum.isShared) {
-                    addResult = await addItemsToSharedAlbum(fetch, windowGlobalData, sourcePath, batch, destinationAlbum.mediaKey);
-                } else {
-                    addResult = await addItemsToNonSharedAlbum(fetch, windowGlobalData, sourcePath, batch, destinationAlbum.mediaKey);
-                }
-
-                if (addResult.success) {
-                    log(`Successfully added batch of ${batch.length} items.`);
-                } else {
-                    log(`Error: Failed to add batch of ${batch.length} items. ${addResult.error}. Response: ${JSON.stringify(addResult.data)}`);
+                const batchNumber = (i / addBatchSize) + 1;
+                log(`Adding batch ${batchNumber} of ${batch.length} items...`);
+                try {
+                    let addResult;
+                    if (destinationAlbum.isShared) {
+                        addResult = await addItemsToSharedAlbum(fetch, windowGlobalData, sourcePath, batch, destinationAlbum.mediaKey, log);
+                    } else {
+                        addResult = await addItemsToNonSharedAlbum(fetch, windowGlobalData, sourcePath, batch, destinationAlbum.mediaKey, log);
+                    }
+                     // Log the raw response for diagnostics
+                    log(`API Response for batch ${batchNumber}: ${JSON.stringify(addResult, null, 2)}`);
+                } catch (error) {
+                    log(`Error adding batch ${batchNumber}: ${error.message}`);
                 }
             }
+            log('Finished adding all batches.');
         }
     }
 

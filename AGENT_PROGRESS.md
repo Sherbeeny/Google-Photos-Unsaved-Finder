@@ -1,22 +1,25 @@
 # Agent Progress
 
-## Version: 2025.12.22-0412
+## Version: 2025.12.22-0448
 
-### Task: Fix saved status detection for shared album items.
+### Task: Diagnose and Fix Silent "Add to Album" Failure
 
 ### Acceptance Criteria
-- The script correctly identifies saved and unsaved items in both shared and non-shared albums.
-- The logic uses the `VrseUb` rpcid for all items.
-- The saved status is determined by the presence of the `"163238866"` key in the item's details.
+- The "add to album" functionality works correctly.
+- The script's logs accurately reflect the success or failure of the "add to album" operation.
 
 ### Plan
-- **prework: Initial Setup and TDD.** - **COMPLETED**
-- **work: Implement the Corrected Logic.** - **COMPLETED**
-- **work: Verify the Fix.** - **COMPLETED**
-- **postwork: Finalization and Submission.** - **COMPLETED**
+1.  **prework: Update Process and Userscript Version.**
+    *   Generate a new version number.
+    *   **Immediately** update the `@version` tag in `src/google_photos_unsaved_finder.user.js` with the new version number.
+    *   Add a rule to `AGENTS.md` mandating that the userscript version header be updated as the first action in any plan.
+    *   Update `AGENT_PROGRESS.md` with this new plan.
 
-### Final Results
-- All tests pass.
-- Code has been linted and coverage is above 90%.
-- `CHANGELOG.md` has been updated with the details of this fix.
-- The script now reliably detects the saved status of all items.
+2.  **work: Fix Failing Tests.**
+    *   The tests are currently failing because of the diagnostic logging I added. I will update the tests to align with the new diagnostic logic, ensuring the test suite passes. This will allow us to proceed with a clean state.
+
+3.  **work: Submit for User Testing.**
+    *   I will submit this new version, which includes the diagnostic logging for the "add to album" functions. The purpose of this submission is to get you a version of the script that will produce the logs we need to identify the silent failure.
+
+4.  **postwork: Analyze User Feedback and Implement Final Fix.**
+    *   After you run the updated script and provide the new logs from the "add to album" attempt, I will have the data needed to write the final, correct success/failure logic and permanently fix the bug. I will create a new plan for this final step at that time.
