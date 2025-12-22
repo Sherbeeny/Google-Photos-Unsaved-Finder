@@ -1,3 +1,15 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+## [2025.12.22-0412] - 2025-12-22
+
+### Fixed
+- The script now correctly identifies the saved status of photos in all albums, including shared ones.
+- The logic has been simplified to use a single, reliable API endpoint (`VrseUb`) for all items.
+- The method for determining "saved" status is now based on a specific key (`"163238866"`) in the API response, which has been proven to be accurate across multiple tests.
+- Removed obsolete code and tests related to the old, failing API logic.
+
 ## [2025.12.22-0022] - 2025-12-22
 
 ### Fixed
@@ -9,9 +21,8 @@
 ### Changed
 - The 'Albums to search' list in the UI is now a fixed height (5 lines) and will scroll if the content overflows.
 
-# Changelog
-
-All notable changes to this project will be documented in this file.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2025.12.19-0307] - 2025-12-19
 
@@ -22,9 +33,6 @@ All notable changes to this project will be documented in this file.
 - The "Start" button is now full-width for a more modern look.
 - Updated the UI labels to "Albums to search" and "Add them to album" for better clarity.
 - The destination album dropdown now has left-aligned text.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2025.12.19-0137] - 2025-12-19
 

@@ -70,14 +70,18 @@ describe('Userscript Core Logic', () => {
         expect(result.error).toBe('Network error');
     });
 
-    it('should get item info correctly for a non-shared album item', async () => {
-        const mockItemInfoData = [
-            [ "photo_1", null, null, null, null, [] ] // The presence of [] at index 5 means "saved".
+    it('should get item info correctly for a SAVED item', async () => {
+        // Mock data for a SAVED item, containing the key in the final object
+        const mockSavedItemData = [
+            [
+                "saved_media_key", null, null, null, null, null, null, null, null,
+                { "15": 275865, "163238866": [false, "some_id"] }
+            ]
         ];
-        mockFetch.mockResolvedValueOnce(createMockApiResponse('VrseUb', mockItemInfoData));
+        mockFetch.mockResolvedValueOnce(createMockApiResponse('VrseUb', mockSavedItemData));
 
-        // Call with isShared = false
-        const result = await userscript.getItemInfo(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, 'photo_1', false);
+        // Call the simplified getItemInfo function
+        const result = await userscript.getItemInfo(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, 'saved_media_key');
 
         expect(mockFetch).toHaveBeenCalled();
         const requestBody = mockFetch.mock.calls[0][1].body;
@@ -86,28 +90,62 @@ describe('Userscript Core Logic', () => {
         expect(result.data.savedToYourPhotos).toBe(true);
     });
 
-    it('should get item info correctly for a shared album item', async () => {
-        // Mock data for the 'fDcn4b' rpcid. A saved item has a non-null value at [5][0][0].
-        const mockItemInfoSharedData = [[ "photo_shared_1", null, null, null, null, [[["some_value"]]] ]];
-        mockFetch.mockResolvedValueOnce(createMockApiResponse('fDcn4b', mockItemInfoSharedData));
+    it('should get item info correctly for an UNSAVED item', async () => {
+        // Mock data for an UNSAVED item, missing the key in the final object
+        const mockUnsavedItemData = [
+            [
+                "unsaved_media_key", null, null, null, null, null, null, null, null,
+                { "15": 275865 }
+            ]
+        ];
+        mockFetch.mockResolvedValueOnce(createMockApiResponse('VrseUb', mockUnsavedItemData));
 
-        // Call with isShared = true
-        const result = await userscript.getItemInfo(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, 'photo_shared_1', true);
+        // Call the simplified getItemInfo function
+        const result = await userscript.getItemInfo(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, 'unsaved_media_key');
 
         expect(mockFetch).toHaveBeenCalled();
         const requestBody = mockFetch.mock.calls[0][1].body;
-        expect(requestBody).toContain('fDcn4b'); // Ensure correct rpcid
+        expect(requestBody).toContain('VrseUb'); // Ensure correct rpcid
         expect(result.success).toBe(true);
-        expect(result.data.savedToYourPhotos).toBe(true);
-        expect(result.data.mediaKey).toBe('photo_shared_1');
+        expect(result.data.savedToYourPhotos).toBe(false);
     });
 
 
     it('should handle errors when getting item info', async () => {
         mockFetch.mockRejectedValueOnce(new Error('Network error'));
-        const result = await userscript.getItemInfo(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, 'photo_1', false);
+        const result = await userscript.getItemInfo(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, 'photo_1');
         expect(result.success).toBe(false);
         expect(result.error).toBe('Network error');
+    });
+
+    it('should correctly identify saved status based on the presence of a specific key', async () => {
+        // Mock data for an UNSAVED item, missing the key in the final object
+        const mockUnsavedItemData = [
+            [
+                "unsaved_media_key", null, null, null, null, null, null, null, null,
+                { "15": 275865 }
+            ]
+        ];
+
+        // Mock data for a SAVED item, containing the key in the final object
+        const mockSavedItemData = [
+            [
+                "saved_media_key", null, null, null, null, null, null, null, null,
+                { "15": 275865, "163238866": [false, "some_id"] }
+            ]
+        ];
+
+        mockFetch
+            .mockResolvedValueOnce(createMockApiResponse('VrseUb', mockUnsavedItemData))
+            .mockResolvedValueOnce(createMockApiResponse('VrseUb', mockSavedItemData));
+
+        // Test unsaved item
+        const unsavedResult = await userscript.getItemInfo(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, 'unsaved_media_key');
+        expect(unsavedResult.data.savedToYourPhotos).toBe(false);
+
+        // Test saved item
+        const savedResult = await userscript.getItemInfo(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, 'saved_media_key');
+        expect(savedResult.data.savedToYourPhotos).toBe(true);
     });
 
     it('should add items to a shared album', async () => {
@@ -142,75 +180,54 @@ describe('Userscript Core Logic', () => {
     });
 
     // --- Testing the main processing function ---
-    it('should execute the full processing logic, handling both shared and non-shared albums', async () => {
+    it('should execute the full processing logic, finding unsaved items', async () => {
         const log = jest.fn();
         const getUiState = () => ({
             selectedAlbums: [
-                { mediaKey: 'album_id_shared', isShared: true, title: 'Shared Album' },
-                { mediaKey: 'album_id_private', isShared: false, title: 'Private Album' }
+                { mediaKey: 'album_id_1', isShared: true, title: 'Test Album' }
             ],
             filter: 'not-saved',
-            destinationAlbum: { mediaKey: 'album_id_dest', isShared: true },
+            destinationAlbum: { mediaKey: 'album_id_dest', isShared: false },
         });
 
         // --- Mock API Responses ---
-        // Page for SHARED album -> contains one saved, one unsaved
-        const sharedAlbumPage = [null, [['photo_s_unsaved'], ['photo_s_saved']]];
-        // Page for PRIVATE album -> contains one saved, one unsaved
-        const privateAlbumPage = [null, [['photo_p_unsaved'], ['photo_p_saved']]];
+        const albumPage = [null, [['photo_unsaved'], ['photo_saved']]];
 
-        // Item info for SHARED album items (using fDcn4b)
-        // An unsaved item has a null value at index 5.
-        const itemInfoSharedUnsaved = [[ 'photo_s_unsaved', null, null, null, null, null ]];       // Unsaved
-        const itemInfoSharedSaved = [[ 'photo_s_saved', null, null, null, null, [[["value"]]] ]];   // Saved
-
-        // Item info for PRIVATE album items (using VrseUb)
-        const itemInfoPrivateUnsaved = [ ['photo_p_unsaved'] ]; // Unsaved
-        const itemInfoPrivateSaved = [ ['photo_p_saved', null, null, null, null, []] ]; // Saved
-
+        // UNSAVED item mock data (missing the key)
+        const itemInfoUnsaved = [[ "photo_unsaved", null, null, null, null, null, null, null, null, { "15": 123 } ]];
+        // SAVED item mock data (has the key)
+        const itemInfoSaved = [[ "photo_saved", null, null, null, null, null, null, null, null, { "15": 123, "163238866": [] } ]];
 
         mockFetch
-            // --- First Album (Shared) ---
-            .mockResolvedValueOnce(createMockApiResponse('snAcKc', sharedAlbumPage))      // getAlbumPage for shared album
-            .mockResolvedValueOnce(createMockApiResponse('fDcn4b', itemInfoSharedUnsaved)) // getItemInfo for photo_s_unsaved
-            .mockResolvedValueOnce(createMockApiResponse('fDcn4b', itemInfoSharedSaved))   // getItemInfo for photo_s_saved
-            // --- Second Album (Private) ---
-            .mockResolvedValueOnce(createMockApiResponse('snAcKc', privateAlbumPage))       // getAlbumPage for private album
-            .mockResolvedValueOnce(createMockApiResponse('VrseUb', itemInfoPrivateUnsaved)) // getItemInfo for photo_p_unsaved
-            .mockResolvedValueOnce(createMockApiResponse('VrseUb', itemInfoPrivateSaved))   // getItemInfo for photo_p_saved
+            // --- Get Album Page ---
+            .mockResolvedValueOnce(createMockApiResponse('snAcKc', albumPage))
+            // --- GetItemInfo calls (now always VrseUb) ---
+            .mockResolvedValueOnce(createMockApiResponse('VrseUb', itemInfoUnsaved)) // for photo_unsaved
+            .mockResolvedValueOnce(createMockApiResponse('VrseUb', itemInfoSaved))   // for photo_saved
             // --- Final Add Call ---
-            .mockResolvedValueOnce(createMockApiResponse('laUYf', null)); // addItemsToSharedAlbum
+            .mockResolvedValueOnce(createMockApiResponse('E1Cajb', [1])); // addItemsToNonSharedAlbum
 
         await userscript.startProcessing(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, log, getUiState);
 
         // Check logs for correct flow
-        expect(log).toHaveBeenCalledWith('Fetching media items from album: Shared Album...');
+        expect(log).toHaveBeenCalledWith('Fetching media items from album: Test Album...');
         expect(log).toHaveBeenCalledWith('Found 2 items in album. Checking their status...');
-        expect(log).toHaveBeenCalledWith('Fetching media items from album: Private Album...');
-        expect(log).toHaveBeenCalledWith('Found 2 items in album. Checking their status...');
-        expect(log).toHaveBeenCalledWith('Scanned 4 total items across all selected albums.');
-        expect(log).toHaveBeenCalledWith('Found 2 matching items.');
-        expect(log).toHaveBeenCalledWith('Adding 2 items to destination album...');
-        expect(log).toHaveBeenCalledWith('Successfully added batch of 2 items.');
+        expect(log).toHaveBeenCalledWith('Scanned 2 total items across all selected albums.');
+        expect(log).toHaveBeenCalledWith('Found 1 matching items.');
+        expect(log).toHaveBeenCalledWith('Adding 1 items to destination album...');
+        expect(log).toHaveBeenCalledWith('Successfully added batch of 1 items.');
 
 
-        // Verify that the correct rpcids were used for getItemInfo
-        const getItemInfoCalls = mockFetch.mock.calls.filter(call => call[0].includes('VrseUb') || call[0].includes('fDcn4b'));
-        expect(getItemInfoCalls.length).toBe(4);
-        expect(getItemInfoCalls[0][0]).toContain('fDcn4b'); // photo_s_unsaved
-        expect(getItemInfoCalls[1][0]).toContain('fDcn4b'); // photo_s_saved
-        expect(getItemInfoCalls[2][0]).toContain('VrseUb'); // photo_p_unsaved
-        expect(getItemInfoCalls[3][0]).toContain('VrseUb'); // photo_p_saved
-
+        // Verify that only VrseUb was used for getItemInfo
+        const getItemInfoCalls = mockFetch.mock.calls.filter(call => call[0].includes('batchexecute?rpcids=VrseUb'));
+        expect(getItemInfoCalls.length).toBe(2);
 
         // Verify the final API call to add items
         const lastFetchCall = mockFetch.mock.calls[mockFetch.mock.calls.length - 1];
         const requestBody = lastFetchCall[1].body;
-        expect(requestBody).toContain('laUYf');
-        expect(requestBody).toContain('photo_s_unsaved'); // Unsaved from shared
-        expect(requestBody).toContain('photo_p_unsaved'); // Unsaved from private
-        expect(requestBody).not.toContain('photo_s_saved');
-        expect(requestBody).not.toContain('photo_p_saved');
+        expect(requestBody).toContain('E1Cajb');
+        expect(requestBody).toContain('photo_unsaved');
+        expect(requestBody).not.toContain('photo_saved');
     });
 
     it('should handle a null response from getItemInfo without crashing', async () => {
@@ -230,7 +247,7 @@ describe('Userscript Core Logic', () => {
         await userscript.startProcessing(mockFetch, mockWindowGlobalData, mockWindowGlobalData.pathname, log, getUiState);
 
         expect(log).toHaveBeenCalledWith(expect.stringContaining('Error getting item info:'));
-        expect(log).toHaveBeenCalledWith(expect.stringContaining('API returned null or undefined response for item.'));
+        expect(log).toHaveBeenCalledWith(expect.stringContaining('API returned null or undefined response for item photo_1'));
     });
 
 
@@ -270,7 +287,7 @@ describe('Userscript Core Logic', () => {
 
         // Mock the sequence of fetch calls
         const albumPageData = [null, [['photo_1_unsaved']]];
-        const itemInfoUnsaved = [ ['photo_1_unsaved'] ];
+        const itemInfoUnsaved = [[ "photo_1_unsaved", null, null, null, null, null, null, null, null, {} ]];
 
         mockFetch
             .mockResolvedValueOnce(createMockApiResponse('snAcKc', albumPageData)) // getAlbumPage
@@ -296,23 +313,19 @@ describe('Userscript Core Logic', () => {
             expect(parsed.isShared).toBe(false);
         });
 
-        it('itemInfoParse should correctly identify a saved item via new logic', () => {
+        it('itemInfoParse should correctly identify a saved item', () => {
             const mockSavedItemData = [
-                [ "item_id_saved", null, null, null, null, [], null, null, null, null, null, null, null, null, null, {} ]
+                [ "item_id_saved", null, null, null, null, null, null, null, null, { "163238866": [] } ]
             ];
             const parsed = userscript.itemInfoParse(mockSavedItemData);
             expect(parsed.savedToYourPhotos).toBe(true);
         });
 
-        it('itemInfoSharedParse should correctly identify a saved item', () => {
-            const mockSavedItemData = [ "item_id_saved", null, null, null, null, [[["some_value"]]] ];
-            const parsed = userscript.itemInfoSharedParse(mockSavedItemData);
-            expect(parsed.savedToYourPhotos).toBe(true);
-        });
-
-        it('itemInfoSharedParse should correctly identify an unsaved item', () => {
-            const mockUnsavedItemData = [ "item_id_unsaved", null, null, null, null, null ];
-            const parsed = userscript.itemInfoSharedParse(mockUnsavedItemData);
+        it('itemInfoParse should correctly identify an unsaved item', () => {
+            const mockUnsavedItemData = [
+                [ "item_id_unsaved", null, null, null, null, null, null, null, null, {} ]
+            ];
+            const parsed = userscript.itemInfoParse(mockUnsavedItemData);
             expect(parsed.savedToYourPhotos).toBe(false);
         });
     });

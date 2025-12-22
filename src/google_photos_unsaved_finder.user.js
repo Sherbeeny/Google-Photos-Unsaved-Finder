@@ -59,23 +59,17 @@
       };
     }
     function itemInfoParse(itemData) {
-      return {
-        mediaKey: itemData[0]?.[0],
-        savedToYourPhotos: Array.isArray(itemData[0]?.[5]),
-      };
-    }
-    function itemInfoSharedParse(itemData) {
-      return {
-        mediaKey: itemData[0],
-        // According to GPTK, check for the presence of a value at this path.
-        savedToYourPhotos: !!(itemData?.[5]?.[0]?.[0]),
-      };
+        // Corrected logic: Check for the presence of the "163238866" key in the object at index [0][9].
+        const infoObject = itemData[0]?.[9];
+        return {
+            mediaKey: itemData[0]?.[0],
+            savedToYourPhotos: infoObject && infoObject.hasOwnProperty('163238866'),
+        };
     }
     function parser(data, rpcid) {
       if (rpcid === 'Z5xsfc') return albumsPage(data);
       if (rpcid === 'snAcKc') return albumItemsPage(data);
       if (rpcid === 'VrseUb') return itemInfoParse(data);
-      if (rpcid === 'fDcn4b') return itemInfoSharedParse(data);
       return null;
     }
 
@@ -132,20 +126,15 @@
       }
     }
 
-    async function getItemInfo(fetch, windowGlobalData, sourcePath, mediaKey, isShared) {
-        const rpcid = isShared ? 'fDcn4b' : 'VrseUb';
-        const requestData = isShared ? [null, mediaKey] : [mediaKey, null, null, null, null];
+    async function getItemInfo(fetch, windowGlobalData, sourcePath, mediaKey) {
+        const rpcid = 'VrseUb';
+        const requestData = [mediaKey, null, null, null, null];
         try {
             const response = await makeApiRequest(fetch, windowGlobalData, rpcid, requestData, sourcePath);
             if (!response) {
-                return { success: false, error: 'API returned null or undefined response for item.', data: response };
+                 return { success: false, error: `API returned null or undefined response for item ${mediaKey}. rpcid: ${rpcid}`, data: response };
             }
-            // The shared endpoint has a different response structure. The actual item data is nested one level deeper.
-            const dataToParse = isShared ? response[0] : response;
-            if (!dataToParse) {
-                return { success: false, error: 'API returned null or undefined response for item.', data: response };
-            }
-            const parsed = parser(dataToParse, rpcid);
+            const parsed = parser(response, rpcid);
             if (parsed) {
                 return { success: true, data: parsed };
             }
@@ -217,7 +206,7 @@
             const batchSize = 20; // Batching for getItemInfo calls
             for (let i = 0; i < albumMediaItems.length; i += batchSize) {
                 const batch = albumMediaItems.slice(i, i + batchSize);
-                const promises = batch.map(item => getItemInfo(fetch, windowGlobalData, sourcePath, item.mediaKey, album.isShared));
+                const promises = batch.map(item => getItemInfo(fetch, windowGlobalData, sourcePath, item.mediaKey));
                 const itemInfoResults = await Promise.all(promises);
 
                 for (const result of itemInfoResults) {
@@ -474,8 +463,7 @@
             albumsPage,
             albumItemParse,
             albumItemsPage,
-            itemInfoParse,
-            itemInfoSharedParse
+            itemInfoParse
         };
     }
 
